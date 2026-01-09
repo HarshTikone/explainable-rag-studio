@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+# Vector DB / runtime artifacts
+index/
+outputs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
