@@ -9,7 +9,7 @@ This project demonstrates how to build a **production-style RAG Document Q&A sys
 ## 🎥 Demo Video
 
 ▶️ **Project Walkthrough (3–5 min):**
-[https://youtu.be/REPLACE_WITH_DEMO_LINK]([https://youtu.be/REPLACE_WITH_DEMO_LINK](https://app.govideolink.com/videos/0DSg0V06vaOuG9vvYxpv/?utm_source=direct&utm_medium=invite_link))
+[Watch the walkthrough (3-5 min)](https://app.govideolink.com/videos/0DSg0V06vaOuG9vvYxpv/?utm_source=direct&utm_medium=invite_link)
 
 This short demo walks through:
 
