@@ -8,7 +8,7 @@ def build_context(retrieved: List[Dict[str, Any]]) -> str:
     for r in retrieved:
         parts.append(
             f"[{r['chunk_id']}] Source: {r['source']} | Page: {r['page']}\n"
-            f"{r['text']}\n"
+            f"{r.get('generation_text', r['text'])}\n"
         )
     return "\n---\n".join(parts)
 
@@ -18,7 +18,7 @@ def system_prompt() -> str:
         "Rules:\n"
         "1) If the answer is not in the context, say you don't know.\n"
         "2) Provide a concise answer.\n"
-        "3) Always include 2–3 citations referencing chunk ids like [c000123].\n"
+        "3) Every factual claim must cite one to three supplied chunk ids.\n"
         "4) Do not invent sources.\n"
     )
 
@@ -26,7 +26,5 @@ def user_prompt(question: str, context: str) -> str:
     return (
         f"Question:\n{question}\n\n"
         f"Context:\n{context}\n\n"
-        "Return format:\n"
-        "Answer: <your answer>\n"
-        "Citations: [chunk_id], [chunk_id], [chunk_id]\n"
+        "Return atomic claims whose citations reference only supplied chunk ids.\n"
     )

@@ -1,12 +1,12 @@
 from typing import List
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 class Embedder:
     """
     Local embedding model wrapper using SentenceTransformers.
     """
     def __init__(self, model_name: str):
+        from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(model_name)
 
     def embed_texts(self, texts: List[str]) -> np.ndarray:

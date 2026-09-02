@@ -45,6 +45,8 @@ class FaissStore:
 
     def load(self) -> bool:
         if not (os.path.exists(self.index_path) and os.path.exists(self.meta_path)):
+            self.index = None
+            self.meta = {"items": []}
             return False
         self.index = faiss.read_index(self.index_path)
         self.meta = read_json(self.meta_path)

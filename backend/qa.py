@@ -1,37 +1,42 @@
-from typing import Dict, Any, List, Tuple
-import re
+from typing import Dict, Any
+import time
 
 from .prompt import build_context
-from .citations import pick_top_citations
+from .retriever import RetrievalResult
+from .grounding import (
+    build_extractive_draft,
+    citations_from_grounding,
+    generate_structured_draft,
+    grounding_config_fingerprint,
+    render_grounded_answer,
+    verify_claims,
+)
+from .review_registry import ReviewRegistry
+from .config import SETTINGS
+from .grounding_policy import GroundingPolicy
 
-def _system_rules() -> str:
-    return (
-        "You are a helpful assistant that answers questions using ONLY the provided context.\n"
-        "Rules:\n"
-        "1) If the answer is not in the context, say you don't know.\n"
-        "2) Provide a concise answer.\n"
-        "3) Always include 2–3 citations referencing chunk ids like [c000123].\n"
-        "4) Do not invent sources.\n"
-    )
+def _legacy_items(retrieved_items):
+    return retrieved_items.as_legacy() if isinstance(retrieved_items, RetrievalResult) else retrieved_items
 
-def extractive_answer(question: str, retrieved_items: List[Tuple[float, Dict[str, Any]]]) -> str:
+
+def extractive_answer(question: str, retrieved_items) -> str:
     """
     Non-LLM fallback: returns the most relevant chunk excerpt.
     Keeps the app usable even without an API key.
     """
-    if not retrieved_items:
-        return "I don't know."
-
-    top = sorted(retrieved_items, key=lambda x: x[0], reverse=True)[0][1]["text"]
-    sentences = re.split(r"(?<=[.!?])\s+", top)
-    return " ".join(sentences[:3]).strip() or "I don't know."
+    draft = build_extractive_draft(retrieved_items)
+    return " ".join(claim.text for claim in draft.claims) or "I don't know."
 
 def answer_with_optional_llm(
     question: str,
-    retrieved_items: List[Tuple[float, Dict[str, Any]]],
+    retrieved_items,
     use_gemini: bool,
     gemini_client=None,
-    gemini_model: str = ""
+    gemini_model: str = "",
+    verifier=None,
+    review_registry: ReviewRegistry | None = None,
+    persist_review: bool = True,
+    grounding_policy: GroundingPolicy | None = None,
 ) -> Dict[str, Any]:
     """
     Returns:
@@ -41,33 +46,43 @@ def answer_with_optional_llm(
         context: str
       }
     """
-    citations = pick_top_citations(retrieved_items, max_cites=3)
-    retrieved = [it for _, it in retrieved_items]
+    generation_started = time.perf_counter()
+    legacy = _legacy_items(retrieved_items)
+    retrieved = [it for _, it in legacy]
     context = build_context(retrieved)
 
-    if not retrieved_items:
-        return {"answer": "I don't know.", "citations": [], "context": context}
+    if not legacy:
+        draft = build_extractive_draft([])
+    elif use_gemini and gemini_client is not None:
+        try:
+            draft = generate_structured_draft(question, retrieved_items, gemini_client, gemini_model)
+        except Exception:
+            draft = build_extractive_draft(retrieved_items)
+    else:
+        draft = build_extractive_draft(retrieved_items)
+    claim_generation_ms = (time.perf_counter() - generation_started) * 1000
 
-    if not use_gemini:
-        ans = extractive_answer(question, retrieved_items)
-        return {"answer": ans, "citations": citations, "context": context}
+    verification = verify_claims(draft, retrieved_items, verifier=verifier, policy=grounding_policy).result
+    verification.latency_ms["claim_generation"] = claim_generation_ms
+    verification.latency_ms.setdefault("citation_validation", 0.0)
+    verification.latency_ms.setdefault("conflict_scan", 0.0)
+    answer = render_grounded_answer(verification)
+    citations = citations_from_grounding(verification)
 
-    # Gemini prompt: keep it explicit and grounded
-    prompt = (
-        f"{_system_rules()}\n"
-        f"Question:\n{question}\n\n"
-        f"Context:\n{context}\n\n"
-        "Return ONLY the final answer text. Include citations inline like [c000123]."
-    )
+    if persist_review:
+        registry = review_registry or ReviewRegistry(SETTINGS.review_db_path)
+        fingerprint = grounding_config_fingerprint(verification)
+        for claim in verification.accepted_claims + verification.rejected_claims:
+            if claim.low_confidence or claim.verdict == "disputed":
+                registry.enqueue(
+                    claim.model_dump(),
+                    "disputed" if claim.verdict == "disputed" else "low_confidence",
+                    fingerprint,
+                )
 
-    resp = gemini_client.models.generate_content(
-        model=gemini_model,
-        contents=prompt
-    )
-
-    # google-genai exposes response text via resp.text
-    answer = (resp.text or "").strip() if hasattr(resp, "text") else str(resp).strip()
-    if not answer:
-        answer = "I don't know."
-
-    return {"answer": answer, "citations": citations, "context": context}
+    return {
+        "answer": answer,
+        "citations": citations,
+        "context": context,
+        "grounding": verification.model_dump(),
+    }

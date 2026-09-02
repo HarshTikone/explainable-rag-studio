@@ -1,0 +1,702 @@
+[
+  {
+    "question": "What is Northstar's tenant-safe document service called?",
+    "reference_answer": "Atlas",
+    "relevant_chunk_ids": [
+      "chk_f059bcdf50f37f6b332f"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "How long do current Meridian access tokens remain valid?",
+    "reference_answer": "45-minute lifetime",
+    "relevant_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "On which day does Ledger currently generate invoices?",
+    "reference_answer": "third calendar day",
+    "relevant_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What RRF constant does Beacon use?",
+    "reference_answer": "60",
+    "relevant_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What recovery point objective applies to tier-one Harbor data?",
+    "reference_answer": "15-minute recovery point objective",
+    "relevant_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What canary percentage and duration does Nova require?",
+    "reference_answer": "10 percent for 20 minutes",
+    "relevant_chunk_ids": [
+      "chk_8d9329f72c4887e487fb"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Which document formats does the current Atlas policy accept?",
+    "reference_answer": "PDF, Markdown, and plain text",
+    "relevant_chunk_ids": [
+      "chk_041abde0514bf6b83ade"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How many times does Pulse retry transient failures?",
+    "reference_answer": "five times",
+    "relevant_chunk_ids": [
+      "chk_5a1e6ff3470a95e87d57"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How long are audit events retained under Aegis?",
+    "reference_answer": "400 days",
+    "relevant_chunk_ids": [
+      "chk_7461a2abe7c2d2934af3"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "When are Prism hourly aggregates published?",
+    "reference_answer": "10 minutes past the hour",
+    "relevant_chunk_ids": [
+      "chk_0932baa9b99ec80b4f29"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What incident ID investigated Meridian clock skew?",
+    "reference_answer": "ID-2026-014",
+    "relevant_chunk_ids": [
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident reversed duplicated BI-2207 adjustments?",
+    "reference_answer": "FI-2026-031",
+    "relevant_chunk_ids": [
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident recorded a stale BM25 index for SE-3104?",
+    "reference_answer": "SR-2026-044",
+    "relevant_chunk_ids": [
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What incident ID covered the expired us-east-2 backup grant?",
+    "reference_answer": "OP-2026-052",
+    "relevant_chunk_ids": [
+      "chk_0950de8edd55a15fe57c"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident found the missing database index during a Nova canary?",
+    "reference_answer": "PL-2026-063",
+    "relevant_chunk_ids": [
+      "chk_99c0da6e93810569a35c"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What incident ID quarantined the mislabeled Markdown upload?",
+    "reference_answer": "KG-2026-071",
+    "relevant_chunk_ids": [
+      "chk_ba8ebe358d003a5b7745"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident involved the unsynchronized webhook secret?",
+    "reference_answer": "CM-2026-082",
+    "relevant_chunk_ids": [
+      "chk_ffbe92224f76ff56a7a1"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What incident ID caught obsolete upload retention before promotion?",
+    "reference_answer": "GV-2026-095",
+    "relevant_chunk_ids": [
+      "chk_cf85c2292fed86808d5b"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident merged an 18-minute-late analytics batch?",
+    "reference_answer": "DA-2026-108",
+    "relevant_chunk_ids": [
+      "chk_eab94e1bb6db99296f05"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What incident ID detected a stale cache namespace?",
+    "reference_answer": "SR-2026-117",
+    "relevant_chunk_ids": [
+      "chk_9654119f735502df456d"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "When must organization permissions be applied to search evidence?",
+    "reference_answer": "inside retrieval before documents become candidates",
+    "relevant_chunk_ids": [
+      "chk_7e15b43d3b039cee8683"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How quickly must a severity-one event be acknowledged?",
+    "reference_answer": "within five minutes",
+    "relevant_chunk_ids": [
+      "chk_1a030d8707d2d6af6e14"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What happens if the model complexity classifier cannot be reached?",
+    "reference_answer": "the reasoning model is selected as the safe fallback",
+    "relevant_chunk_ids": [
+      "chk_70070cec309327f4b8bf"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What fingerprint rule prevents invalid experiment comparisons?",
+    "reference_answer": "corpus and benchmark fingerprints must match",
+    "relevant_chunk_ids": [
+      "chk_f149d17eb95e65fdf5db"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How does Vault prevent partially written indexes from going live?",
+    "reference_answer": "vectors and aligned metadata are written atomically",
+    "relevant_chunk_ids": [
+      "chk_a62820276c9f91b88b81"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Which retrieval stages receive separate telemetry?",
+    "reference_answer": "dense, lexical, fusion, and reranking",
+    "relevant_chunk_ids": [
+      "chk_ff4e50c1981e30a48b81"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How does Mosaic choose the language of an answer?",
+    "reference_answer": "the user's requested language",
+    "relevant_chunk_ids": [
+      "chk_978705e8ce19baa5dd4a"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How does Orbit safely identify document versions?",
+    "reference_answer": "SHA-256 checksum and version ID",
+    "relevant_chunk_ids": [
+      "chk_32c59c8e2acaaac6c7c0"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How long are retrieval results kept in the current cache?",
+    "reference_answer": "12 minutes",
+    "relevant_chunk_ids": [
+      "chk_594313f0aaa44e6b856f"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How long may temporary upload artifacts remain?",
+    "reference_answer": "24 hours",
+    "relevant_chunk_ids": [
+      "chk_7461a2abe7c2d2934af3"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What is the current Meridian token lifetime rather than the retired lifetime?",
+    "reference_answer": "45 minutes",
+    "relevant_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does current Ledger billing run on the third calendar day or fifth business day?",
+    "reference_answer": "third calendar day",
+    "relevant_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What does SE-3104 mean in the current Beacon guide?",
+    "reference_answer": "a stale lexical index",
+    "relevant_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What is Harbor's current RPO rather than the obsolete 24-hour target?",
+    "reference_answer": "15 minutes",
+    "relevant_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Nova currently use blue-green or rolling deployment?",
+    "reference_answer": "blue-green deployment",
+    "relevant_chunk_ids": [
+      "chk_8d9329f72c4887e487fb"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Atlas currently detect duplicates by checksum or filename?",
+    "reference_answer": "SHA-256 checksum",
+    "relevant_chunk_ids": [
+      "chk_041abde0514bf6b83ade"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Pulse currently retry five times or indefinitely?",
+    "reference_answer": "five times",
+    "relevant_chunk_ids": [
+      "chk_5a1e6ff3470a95e87d57"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Are current Aegis audit events retained for 400 or 90 days?",
+    "reference_answer": "400 days",
+    "relevant_chunk_ids": [
+      "chk_7461a2abe7c2d2934af3"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Prism currently publish hourly data at 10 or 45 minutes past?",
+    "reference_answer": "10 minutes past the hour",
+    "relevant_chunk_ids": [
+      "chk_0932baa9b99ec80b4f29"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Are current Ember retrieval results cached for 12 minutes or two hours?",
+    "reference_answer": "12 minutes",
+    "relevant_chunk_ids": [
+      "chk_594313f0aaa44e6b856f"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What caused AU-4012 and what resolved it?",
+    "reference_answer": "seven minutes of clock drift; synchronizing the gateway clock",
+    "relevant_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf",
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What caused the BI-2207 incident and were customers charged?",
+    "reference_answer": "a duplicated metering batch; no customer was charged",
+    "relevant_chunk_ids": [
+      "chk_c4def39147115e327d59",
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "Why were exact identifiers missed during SE-3104 and what fixed them?",
+    "reference_answer": "the BM25 index was stale; replaying the lexical refresh",
+    "relevant_chunk_ids": [
+      "chk_befb72259560595368ab",
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "Which backup region had an expired grant and how long did recovery take?",
+    "reference_answer": "us-east-2; 43 minutes",
+    "relevant_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6",
+      "chk_0950de8edd55a15fe57c"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "Why did Nova roll back version 4.8 and how long did rollback take?",
+    "reference_answer": "a missing database index exceeded the canary error budget; four minutes",
+    "relevant_chunk_ids": [
+      "chk_8d9329f72c4887e487fb",
+      "chk_99c0da6e93810569a35c"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "Why was IN-3306 raised and what protected the index?",
+    "reference_answer": "Markdown was labeled as application/pdf; the source was quarantined before parsing",
+    "relevant_chunk_ids": [
+      "chk_041abde0514bf6b83ade",
+      "chk_ba8ebe358d003a5b7745"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What caused NT-5502 and how long until delivery recovered?",
+    "reference_answer": "a rotated secret was missing from one worker pool; eleven minutes",
+    "relevant_chunk_ids": [
+      "chk_5a1e6ff3470a95e87d57",
+      "chk_ffbe92224f76ff56a7a1"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "Which obsolete retention value caused CP-7009 and what blocked its release?",
+    "reference_answer": "seven days; the retention-policy promotion check",
+    "relevant_chunk_ids": [
+      "chk_7461a2abe7c2d2934af3",
+      "chk_cf85c2292fed86808d5b"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "How late was the AN-6203 batch and why was no data lost?",
+    "reference_answer": "18 minutes; the current policy merged delays under 30 minutes",
+    "relevant_chunk_ids": [
+      "chk_0932baa9b99ec80b4f29",
+      "chk_eab94e1bb6db99296f05"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What caused stale Ember results and how were they cleared?",
+    "reference_answer": "the namespace was not incremented; incrementing it cleared the issue",
+    "relevant_chunk_ids": [
+      "chk_594313f0aaa44e6b856f",
+      "chk_9654119f735502df456d"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What is Northstar's annual revenue?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Who is the chief executive officer of Northstar?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What production PostgreSQL password does Vault use?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Which cloud provider hosts every Northstar service?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "How many paying customers use Meridian?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What is the street address of Finance Operations?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Which GPU model runs the Compass reasoning model?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What is the legal name of the customer affected by AU-4012?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What cross-encoder benchmark score has Northstar published?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "When will version Aurora 4.0 be released?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  }
+]

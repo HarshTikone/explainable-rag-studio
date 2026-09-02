@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "paths": [
+    "data/Harsh_Resume_Intern (1).pdf",
+    "data/Harsh_Resume_Intern.pdf",
+    "data/Harsh_Tikone_Resume (20).pdf"
+  ],
+  "authorized": true,
+  "authorization_source": "User request in the release-platform implementation task",
+  "status": "pending_backup_and_rewrite",
+  "note": "Authorization is recorded. Execution still requires the verified mirror backup and exact force-with-lease procedure in docs/RELEASE_CLOSURE.md."
+}

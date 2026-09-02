@@ -1,0 +1,28 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Unit tests and critical-module coverage
+        run: >-
+          pytest -q -m "not slow"
+          --cov=backend.retriever
+          --cov=backend.experiments
+          --cov=backend.eval
+          --cov=backend.grounding
+          --cov=backend.grounding_eval
+          --cov=backend.review_registry
+          --cov=backend.security
+          --cov=backend.database
+          --cov-fail-under=90

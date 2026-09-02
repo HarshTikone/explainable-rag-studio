@@ -1,0 +1,174 @@
+name: explainable-rag-studio
+
+x-app-environment: &app-environment
+  PLATFORM_MODE: postgres
+  SECURITY_MODE: required
+  OBJECT_STORE_ENDPOINT: http://minio:9000
+  OBJECT_STORE_REGION: us-east-1
+  OBJECT_STORE_BUCKET: rag-private
+  OBJECT_STORE_SECURE: "false"
+  OIDC_ISSUER: http://keycloak.localhost:8080/realms/explainable-rag
+  OIDC_AUDIENCE: explainable-rag-api
+  OIDC_CLIENT_ID: explainable-rag-streamlit
+  OIDC_REDIRECT_URI: http://localhost:8000/auth/callback
+  APP_PUBLIC_URL: http://localhost:8501
+  API_BASE_URL: http://api:8000
+  RERANKER_BACKEND: onnx
+  GROUNDING_BACKEND: onnx
+
+x-app-secrets: &app-secrets
+  - api_key_pepper
+  - audit_hmac_key
+  - rag_app_password
+  - minio_access_key
+  - minio_secret_key
+  - object_master_key
+  - oidc_client_secret
+  - redis_password
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: rag
+      POSTGRES_USER: rag_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password, rag_app_password, keycloak_db_password]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sh:/docker-entrypoint-initdb.d/10-platform.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_owner -d rag"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$(cat /run/secrets/redis_password)\""]
+    secrets: [redis_password]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/redis_password)\" ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
+    secrets: [minio_access_key, minio_secret_key]
+    volumes: [minio-data:/data]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  create-bucket:
+    image: minio/mc:RELEASE.2025-07-21T05-28-08Z
+    depends_on:
+      minio: {condition: service_healthy}
+    secrets: [minio_access_key, minio_secret_key]
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        mc alias set local http://minio:9000 "$$(cat /run/secrets/minio_access_key)" "$$(cat /run/secrets/minio_secret_key)" &&
+        mc mb --ignore-existing local/rag-private &&
+        mc version enable local/rag-private
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    command: start-dev --import-realm
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD_FILE: /run/secrets/keycloak_db_password
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/keycloak_admin_password
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME: http://keycloak.localhost:8080
+    secrets: [keycloak_db_password, keycloak_admin_password]
+    volumes:
+      - ./deploy/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    ports: ["8080:8080"]
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3; grep '200 OK' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  migrate:
+    build: {context: ., args: {PREFETCH_MODELS: "false"}}
+    command: ["sh", "deploy/start-service.sh", "migrate"]
+    environment: *app-environment
+    secrets: *app-secrets
+    depends_on:
+      postgres: {condition: service_healthy}
+    extra_hosts: ["keycloak.localhost:host-gateway"]
+
+  api:
+    build: {context: ., args: {PREFETCH_MODELS: "false"}}
+    command: ["sh", "deploy/start-service.sh", "api"]
+    environment: *app-environment
+    secrets: *app-secrets
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      create-bucket: {condition: service_completed_successfully}
+      keycloak: {condition: service_healthy}
+    ports: ["8000:8000"]
+    extra_hosts: ["keycloak.localhost:host-gateway"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  streamlit:
+    build: {context: ., args: {PREFETCH_MODELS: "false"}}
+    command: ["sh", "deploy/start-service.sh", "streamlit"]
+    environment: *app-environment
+    secrets: *app-secrets
+    depends_on:
+      api: {condition: service_healthy}
+    ports: ["8501:8501"]
+    extra_hosts: ["keycloak.localhost:host-gateway"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    build: {context: ., args: {PREFETCH_MODELS: "false"}}
+    command: ["sh", "deploy/start-service.sh", "worker"]
+    environment: *app-environment
+    secrets: *app-secrets
+    depends_on:
+      api: {condition: service_healthy}
+    extra_hosts: ["keycloak.localhost:host-gateway"]
+
+secrets:
+  postgres_password: {file: ./.secrets/postgres_password}
+  rag_app_password: {file: ./.secrets/rag_app_password}
+  keycloak_db_password: {file: ./.secrets/keycloak_db_password}
+  keycloak_admin_password: {file: ./.secrets/keycloak_admin_password}
+  redis_password: {file: ./.secrets/redis_password}
+  minio_access_key: {file: ./.secrets/minio_access_key}
+  minio_secret_key: {file: ./.secrets/minio_secret_key}
+  api_key_pepper: {file: ./.secrets/api_key_pepper}
+  audit_hmac_key: {file: ./.secrets/audit_hmac_key}
+  object_master_key: {file: ./.secrets/object_master_key}
+  oidc_client_secret: {file: ./.secrets/oidc_client_secret}
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

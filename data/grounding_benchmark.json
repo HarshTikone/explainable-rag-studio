@@ -1,0 +1,1250 @@
+[
+  {
+    "case_id": "gnd_01_01",
+    "claim": "Its tenant-safe document service is named Atlas.",
+    "evidence_chunk_ids": [
+      "chk_f059bcdf50f37f6b332f"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_01_02",
+    "claim": "Atlas is Northstar's tenant-safe document service.",
+    "evidence_chunk_ids": [
+      "chk_f059bcdf50f37f6b332f"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_01_03",
+    "claim": "The Aurora 3.2 platform release was published on 14 March 2026.",
+    "evidence_chunk_ids": [
+      "chk_f059bcdf50f37f6b332f"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_01_04",
+    "claim": "Northstar's document service is hosted only in Europe.",
+    "evidence_chunk_ids": [
+      "chk_f059bcdf50f37f6b332f"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_01_05",
+    "claim": "Northstar's tenant-safe document service is named Beacon.",
+    "evidence_chunk_ids": [
+      "chk_f059bcdf50f37f6b332f"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_01_06",
+    "claim": "Aurora 3.2 was not published on 14 March 2026.",
+    "evidence_chunk_ids": [
+      "chk_f059bcdf50f37f6b332f"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_02_01",
+    "claim": "Dense and lexical rankings are combined with Reciprocal Rank Fusion using a constant of 60.",
+    "evidence_chunk_ids": [
+      "chk_db933482a95508491711"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_02_02",
+    "claim": "Northstar fuses dense and BM25 rankings with RRF at k=60.",
+    "evidence_chunk_ids": [
+      "chk_db933482a95508491711"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_02_03",
+    "claim": "The hybrid pipeline retrieves at least 50 candidates from each available ranking.",
+    "evidence_chunk_ids": [
+      "chk_db933482a95508491711"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_02_04",
+    "claim": "Northstar uses Elasticsearch as its only vector database.",
+    "evidence_chunk_ids": [
+      "chk_db933482a95508491711"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_02_05",
+    "claim": "Northstar's RRF constant is 10.",
+    "evidence_chunk_ids": [
+      "chk_db933482a95508491711"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_02_06",
+    "claim": "MMR is applied after hybrid fusion.",
+    "evidence_chunk_ids": [
+      "chk_db933482a95508491711"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_03_01",
+    "claim": "Permission filtering must happen during retrieval, never after generation.",
+    "evidence_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_03_02",
+    "claim": "Northstar enforces access permissions inside the retrieval stage.",
+    "evidence_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_03_03",
+    "claim": "The Sentinel canary phrase is ORCHID-VAULT-29.",
+    "evidence_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_03_04",
+    "claim": "Sentinel encrypts every uploaded document with a customer-managed key.",
+    "evidence_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_03_05",
+    "claim": "Permission filtering is performed only after answer generation.",
+    "evidence_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_03_06",
+    "claim": "A cross-tenant retrieval result does not block release promotion.",
+    "evidence_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_04_01",
+    "claim": "Citation validity must equal 1.00.",
+    "evidence_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_04_02",
+    "claim": "Northstar requires perfect citation validity for an experiment.",
+    "evidence_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_04_03",
+    "claim": "Retrieval p95 latency may not exceed 1.25 times the baseline.",
+    "evidence_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_04_04",
+    "claim": "The evaluation policy requires BLEU to exceed 0.90.",
+    "evidence_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_04_05",
+    "claim": "A citation validity score of 0.50 passes the policy.",
+    "evidence_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_04_06",
+    "claim": "Recall and MRR may each regress by 0.20 during promotion.",
+    "evidence_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_05_01",
+    "claim": "The production service exposes a health endpoint at /health.",
+    "evidence_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_05_02",
+    "claim": "Northstar reports service health through the /health endpoint.",
+    "evidence_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_05_03",
+    "claim": "The local container port defaults to 8501.",
+    "evidence_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_05_04",
+    "claim": "Production telemetry is retained for exactly 30 days.",
+    "evidence_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_05_05",
+    "claim": "The service health endpoint is /status-only.",
+    "evidence_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_05_06",
+    "claim": "The application cannot operate when Gemini is unavailable.",
+    "evidence_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "case_id": "gnd_06_01",
+    "claim": "No customer data was exposed, and the recovery time was 37 minutes.",
+    "evidence_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_06_02",
+    "claim": "Recovery took 37 minutes and did not expose customer data.",
+    "evidence_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_06_03",
+    "claim": "BM25 correctly favored the exact error identifier NX-417.",
+    "evidence_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_06_04",
+    "claim": "The incident was caused by a compromised administrator account.",
+    "evidence_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_06_05",
+    "claim": "Incident IR-2026-08 exposed customer data.",
+    "evidence_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_06_06",
+    "claim": "The recovery from IR-2026-08 took 90 minutes.",
+    "evidence_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_07_01",
+    "claim": "Meridian issues access tokens with a 45-minute lifetime and rotates signing keys every 14 days.",
+    "evidence_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_07_02",
+    "claim": "Current Meridian tokens expire after 45 minutes.",
+    "evidence_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_07_03",
+    "claim": "AU-4012 requires checking tenant clock skew before credentials are rotated.",
+    "evidence_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_07_04",
+    "claim": "Meridian access tokens use biometric authentication.",
+    "evidence_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_07_05",
+    "claim": "Current Meridian access tokens last eight hours.",
+    "evidence_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_07_06",
+    "claim": "The current Meridian runbook does not supersede the eight-hour token procedure.",
+    "evidence_chunk_ids": [
+      "chk_4ebb9f5679b3cff6e5cf"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_08_01",
+    "claim": "Status: obsolete since 12 January 2025.",
+    "evidence_chunk_ids": [
+      "chk_28b2c5dfd25797c6977c"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_08_02",
+    "claim": "The eight-hour Meridian token procedure has been obsolete since 12 January 2025.",
+    "evidence_chunk_ids": [
+      "chk_28b2c5dfd25797c6977c"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_08_03",
+    "claim": "The former Meridian procedure rotated signing keys every 90 days.",
+    "evidence_chunk_ids": [
+      "chk_28b2c5dfd25797c6977c"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_08_04",
+    "claim": "The legacy runbook requires hardware security keys.",
+    "evidence_chunk_ids": [
+      "chk_28b2c5dfd25797c6977c"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_08_05",
+    "claim": "The legacy Meridian runbook is the current procedure.",
+    "evidence_chunk_ids": [
+      "chk_28b2c5dfd25797c6977c"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_08_06",
+    "claim": "Operators should continue using the obsolete eight-hour token procedure.",
+    "evidence_chunk_ids": [
+      "chk_28b2c5dfd25797c6977c"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_09_01",
+    "claim": "Incident ID ID-2026-014.",
+    "evidence_chunk_ids": [
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_09_02",
+    "claim": "Meridian's clock-skew incident was identified as ID-2026-014.",
+    "evidence_chunk_ids": [
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_09_03",
+    "claim": "The customer gateway drifted seven minutes from network time.",
+    "evidence_chunk_ids": [
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_09_04",
+    "claim": "The incident originated from a stolen signing key.",
+    "evidence_chunk_ids": [
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_09_05",
+    "claim": "The Meridian clock-skew incident was ID-2025-999.",
+    "evidence_chunk_ids": [
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_09_06",
+    "claim": "Rotating signing keys resolved the AU-4012 incident.",
+    "evidence_chunk_ids": [
+      "chk_7d165def8364cf2ddbf1"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_10_01",
+    "claim": "Ledger generates invoices on the third calendar day of each month.",
+    "evidence_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_10_02",
+    "claim": "Current Ledger invoices are created on day three of the calendar month.",
+    "evidence_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_10_03",
+    "claim": "Invoice evidence has an official retention period of seven years.",
+    "evidence_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_10_04",
+    "claim": "Ledger invoices are paid automatically with cryptocurrency.",
+    "evidence_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_10_05",
+    "claim": "Ledger currently generates invoices on the fifth business day.",
+    "evidence_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_10_06",
+    "claim": "Invoice evidence is retained for only two years under the current policy.",
+    "evidence_chunk_ids": [
+      "chk_c4def39147115e327d59"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_11_01",
+    "claim": "Status: obsolete since July 2024.",
+    "evidence_chunk_ids": [
+      "chk_b34fe9640a2641e4d789"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_11_02",
+    "claim": "Ledger's fifth-business-day invoice policy was retired in July 2024.",
+    "evidence_chunk_ids": [
+      "chk_b34fe9640a2641e4d789"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_11_03",
+    "claim": "The retired policy used BI-2207 for any manual change.",
+    "evidence_chunk_ids": [
+      "chk_b34fe9640a2641e4d789"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_11_04",
+    "claim": "The retired policy required payment in euros.",
+    "evidence_chunk_ids": [
+      "chk_b34fe9640a2641e4d789"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_11_05",
+    "claim": "The fifth-business-day Ledger policy is still current.",
+    "evidence_chunk_ids": [
+      "chk_b34fe9640a2641e4d789"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_11_06",
+    "claim": "The legacy two-year evidence retention rule remains valid.",
+    "evidence_chunk_ids": [
+      "chk_b34fe9640a2641e4d789"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_12_01",
+    "claim": "Incident ID FI-2026-031.",
+    "evidence_chunk_ids": [
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_12_02",
+    "claim": "FI-2026-031 was the Ledger duplicated-metering incident.",
+    "evidence_chunk_ids": [
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_12_03",
+    "claim": "The duplicated batch affected 84 test accounts.",
+    "evidence_chunk_ids": [
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_12_04",
+    "claim": "The billing incident affected ten thousand production customers.",
+    "evidence_chunk_ids": [
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_12_05",
+    "claim": "Customers were charged because of FI-2026-031.",
+    "evidence_chunk_ids": [
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_12_06",
+    "claim": "Finance Operations released the incorrect invoices before reversing the batch.",
+    "evidence_chunk_ids": [
+      "chk_3d5c02f8bba5e91864b1"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_13_01",
+    "claim": "Beacon combines dense retrieval and BM25 using Reciprocal Rank Fusion with constant 60.",
+    "evidence_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_13_02",
+    "claim": "Current Beacon search fuses dense and lexical rankings with RRF k=60.",
+    "evidence_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_13_03",
+    "claim": "Production refreshes the lexical index every 20 minutes.",
+    "evidence_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_13_04",
+    "claim": "Beacon refreshes its index only when a user requests it.",
+    "evidence_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_13_05",
+    "claim": "Beacon's current RRF constant is 100.",
+    "evidence_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_13_06",
+    "claim": "SE-3104 indicates an embedding timeout in the current guide.",
+    "evidence_chunk_ids": [
+      "chk_befb72259560595368ab"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_14_01",
+    "claim": "Status: obsolete since November 2025.",
+    "evidence_chunk_ids": [
+      "chk_86da1b952ad827dc28c5"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_14_02",
+    "claim": "Beacon's dense-only ranking guide became obsolete in November 2025.",
+    "evidence_chunk_ids": [
+      "chk_86da1b952ad827dc28c5"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_14_03",
+    "claim": "The legacy Beacon system refreshed vectors every six hours.",
+    "evidence_chunk_ids": [
+      "chk_86da1b952ad827dc28c5"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_14_04",
+    "claim": "The legacy system used a graph database for ranking.",
+    "evidence_chunk_ids": [
+      "chk_86da1b952ad827dc28c5"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_14_05",
+    "claim": "The dense-only Beacon guide is the current production procedure.",
+    "evidence_chunk_ids": [
+      "chk_86da1b952ad827dc28c5"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_14_06",
+    "claim": "Operators should map SE-3104 to an embedding timeout today.",
+    "evidence_chunk_ids": [
+      "chk_86da1b952ad827dc28c5"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "obsolete"
+    ]
+  },
+  {
+    "case_id": "gnd_15_01",
+    "claim": "Incident ID SR-2026-044.",
+    "evidence_chunk_ids": [
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_15_02",
+    "claim": "Beacon's stale BM25 scheduler incident was SR-2026-044.",
+    "evidence_chunk_ids": [
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_15_03",
+    "claim": "The BM25 index remained stale for 71 minutes.",
+    "evidence_chunk_ids": [
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_15_04",
+    "claim": "A database disk failure caused the Beacon incident.",
+    "evidence_chunk_ids": [
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_15_05",
+    "claim": "Dense retrieval also failed during SR-2026-044.",
+    "evidence_chunk_ids": [
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "calibration",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_15_06",
+    "claim": "Replaying the lexical refresh did not fix SE-3104.",
+    "evidence_chunk_ids": [
+      "chk_6239fc5fcdf1d454c407"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "heldout",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "case_id": "gnd_16_01",
+    "claim": "Harbor targets a 15-minute recovery point objective and a 60-minute recovery time objective for tier-one data.",
+    "evidence_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "label": "supported",
+    "category": "exact_support",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_16_02",
+    "claim": "Tier-one Harbor data has a 15-minute RPO and a 60-minute RTO.",
+    "evidence_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "label": "supported",
+    "category": "paraphrase_support",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_16_03",
+    "claim": "Harbor copies backups to us-east-2 and verifies them every Sunday.",
+    "evidence_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "label": "supported",
+    "category": "identifier_numeric",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_16_04",
+    "claim": "Harbor stores its only backup in us-west-1.",
+    "evidence_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "label": "neutral",
+    "category": "unsupported",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_16_05",
+    "claim": "Tier-one Harbor data has a 24-hour recovery point objective.",
+    "evidence_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "label": "contradiction",
+    "category": "hard_contradiction",
+    "split": "heldout",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "case_id": "gnd_16_06",
+    "claim": "BK-1500 starts an unaudited restore workflow under the current standard.",
+    "evidence_chunk_ids": [
+      "chk_4b9a1d8ddddba8057ec6"
+    ],
+    "label": "contradiction",
+    "category": "temporal_negation",
+    "split": "calibration",
+    "expected_source_versions": [
+      "current"
+    ]
+  }
+]

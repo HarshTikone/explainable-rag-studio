@@ -1,0 +1,24 @@
+name: Security gates
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pip-audit -r requirements.txt
+      - run: bandit -q -ll -r backend api.py scripts -x tests
+      - run: pytest -q tests/test_security.py tests/test_security_scanner.py tests/test_tenant_isolation.py
+      - name: Private history check
+        run: python scripts/scan_private_history.py

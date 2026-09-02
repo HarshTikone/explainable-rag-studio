@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "source_revision": "a34db5bf90716efc30ab0ab186c78faefa8693c2",
+  "production_fallback": {
+    "retrieval_strategy": "hybrid_rrf",
+    "grounding_policy": "strict_safe_abstention"
+  },
+  "open_gates_at_start": {
+    "reranking_p95_ms": 1980.75,
+    "reranking_limit_ms": 1500.0,
+    "grounding_macro_f1": 0.68585,
+    "grounding_contradiction_recall": 0.8125,
+    "grounding_verification_p95_ms": 1538.63,
+    "python_3_11": false,
+    "docker": false,
+    "private_history_clean": false
+  },
+  "benchmark_policy": "The 60-question QA benchmark and 48-case grounding held-out split are frozen. Only calibration data may influence model or policy selection."
+}

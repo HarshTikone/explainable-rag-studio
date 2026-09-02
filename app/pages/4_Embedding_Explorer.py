@@ -5,22 +5,35 @@ import plotly.express as px
 from backend.config import SETTINGS
 from backend.vectorstore import FaissStore
 from backend.embeddings import Embedder
+from app.ui import configure_page, footer, page_header, section, status_pills
+from app.security_ui import security_context, tenant_store
 
-import umap
+configure_page("Embedding explorer", "⠿")
+security = security_context("documents:read")
+page_header("Semantic map", "Explore how your knowledge clusters.", "Project high-dimensional chunk embeddings into an interactive 2D map to spot themes, outliers, and document overlap.")
 
-st.title("Embedding Space Explorer (UMAP)")
-
-store = FaissStore(SETTINGS.index_dir)
-if not store.load():
+store = tenant_store(security)
+if store.index is None:
     st.warning("No index found. Build one first.")
     st.stop()
 
 items = store.meta["items"]
 N_total = len(items)
+status_pills([("Index online", True), (f"{N_total:,} chunks", True), (f"{len({x.get('source') for x in items})} sources", True)])
 
-st.write(f"Chunks in index: {N_total}")
+if N_total < 5:
+    st.info("This map needs at least five chunks. Add a larger document set in Ingest & Index, then return here.")
+    st.stop()
 
-max_points = st.slider("Max chunks to plot (for speed)", 50, 3000, min(800, N_total), step=50)
+try:
+    import umap
+except ImportError:
+    st.error("UMAP is not installed in this runtime. Install requirements.txt and restart the app.")
+    st.stop()
+
+section("Projection controls", "UMAP preserves local semantic neighborhoods; tune these settings to inspect different structure.")
+max_limit = min(3000, N_total)
+max_points = st.slider("Max chunks to plot (for speed)", 5, max_limit, min(800, max_limit), step=1 if max_limit < 50 else 50)
 subset = items[:max_points]
 N = len(subset)
 
@@ -31,7 +44,7 @@ embedder = Embedder(embed_model)
 requested_neighbors = st.slider("UMAP n_neighbors", 2, 50, 15, 1)
 min_dist = st.slider("UMAP min_dist", 0.0, 0.99, 0.1, 0.01)
 
-if st.button("Generate 2D Map", type="primary"):
+if st.button("Generate semantic map", type="primary", use_container_width=True):
     if N < 5:
         st.error("Not enough chunks to run UMAP. Ingest a bigger PDF or more documents (need at least ~5 chunks).")
         st.stop()
@@ -74,4 +87,5 @@ if st.button("Generate 2D Map", type="primary"):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-st.info("If UMAP fails, it’s usually because there are too few chunks. Upload more PDFs or lower max_points / neighbors.")
+st.caption("For a stable map, use at least 20 chunks. Small corpora automatically switch to random initialization.")
+footer()

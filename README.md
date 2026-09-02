@@ -25,12 +25,18 @@ This short demo walks through:
 
 ## 🚀 What This Project Does
 
-* Upload PDF documents
-* Split them into **token-based chunks (300–500 tokens)**
+* Upload PDF, scanned PDF, DOCX, Markdown, HTML, and TXT documents
+* Preserve headings and tables with **parent-child contextual chunking**
 * Convert chunks into **vector embeddings**
 * Store and search them efficiently using **FAISS**
-* Answer user questions using **Gemini (LLM)** grounded strictly in retrieved context
-* Provide **2–3 citations per answer** for traceability
+* Compare dense, dense+MMR, **hybrid BM25 + vector retrieval**, and local cross-encoder reranking
+* Fuse lexical and semantic rankings using **Reciprocal Rank Fusion**
+* Rerank the top 30 fused candidates with `cross-encoder/ms-marco-MiniLM-L-6-v2`
+* Track stable document versions, duplicate checks, background ingestion jobs, retries, and soft deletion
+* Generate atomic answer claims with Gemini or a deterministic extractive fallback
+* Verify every claim locally with deterministic guards and a CPU NLI cross-encoder
+* Remove unsupported or disputed claims before display and queue uncertain cases for human review
+* Bind each displayed claim to one to three verified citations
 * Visualize retrieval, embeddings, and similarity scores
 * Evaluate system accuracy using a reproducible **JSON-based benchmark**
 * Track **latency and performance metrics** for each query
@@ -75,10 +81,13 @@ Retriever (Top-K / MMR)
 Prompt Construction (Context + Rules)
       │
       ▼
-Gemini LLM
+Structured Gemini / extractive claims
       │
       ▼
-Answer + Citations + Metrics
+Local NLI + conflict verification
+      │
+      ▼
+Supported claims + evidence + metrics
 ```
 
 ---
@@ -94,17 +103,19 @@ The project includes a **multi-page interactive Streamlit app**:
 
 ### 2️⃣ Ingest & Index
 
-* Upload PDFs
-* Configure chunk size and overlap
-* Build FAISS index
-* Preview chunks and token counts
+* Upload structured documents or load the public benchmark corpus
+* Configure parent/child chunking and optional cached Gemini context
+* Inspect background-job stages, warnings, retries, versions, and duplicate outcomes
+* Preview heading paths, tables, contextual prefixes, and stable chunk IDs
+* Soft-delete documents with immediate dense and lexical index propagation
 
 ### 3️⃣ Ask & Explain
 
 * Ask natural language questions
 * View retrieved chunks and similarity scores
 * See the exact context sent to the LLM
-* Answers returned with **2–3 citations**
+* Inspect accepted and removed claims, evidence scores, conflicts, and strict abstentions
+* Answers contain only claim-bound verified citations
 
 ### 4️⃣ Embedding Explorer
 
@@ -122,9 +133,31 @@ The project includes a **multi-page interactive Streamlit app**:
 * Track retrieval time, generation time, total latency
 * View performance trends across queries
 
+### 7️⃣ Grounding Review
+
+* Resolve disputed and low-confidence claim/evidence cases
+* Compare cited and conflicting passages
+* Export append-only reviewer labels as JSONL
+
 ---
 
 ## 📊 Evaluation Methodology
+
+> The advanced implementation roadmap is maintained in [docs/ADVANCED_BUILD_PLAN.md](docs/ADVANCED_BUILD_PLAN.md).
+
+## Portable production profile
+
+The repository now includes an opt-in production profile built around PostgreSQL row-level security, pgvector, Redis/RQ workers, envelope-encrypted S3 storage, generic OIDC, scoped API keys, quotas, and immutable release evidence. Streamlit becomes an API-only frontend in this mode; tenant identity is always derived from the authenticated credential.
+
+See [docs/PRODUCTION_PLATFORM.md](docs/PRODUCTION_PLATFORM.md) for deployment and migration guidance and [docs/RELEASE_CLOSURE.md](docs/RELEASE_CLOSURE.md) for the quality, security, backup, and authorized history-rewrite procedure. The local reference stack starts with:
+
+```bash
+python scripts/generate_dev_secrets.py
+docker compose build
+docker compose up -d
+```
+
+`hybrid_rrf` and strict safe abstention remain the retained defaults until real Python 3.11 CPU measurements produce promoted reranking and grounding artifacts.
 
 The system supports **reproducible evaluation** using a JSON file:
 
@@ -135,9 +168,21 @@ The system supports **reproducible evaluation** using a JSON file:
 ]
 ```
 
-* Each question is asked automatically
-* An answer is considered correct if it contains the expected phrase
-* Accuracy is computed as:
+The evaluator supports the original `expected` phrase format and an advanced schema with `reference_answer`, gold `relevant_chunk_ids`, `answerable`, and `category` fields. Each run now reports:
+
+* Deterministic answer accuracy
+* Retrieval hit rate, Recall@k, Recall@5, Precision@k, MRR, nDCG@k, and nDCG@5 when gold chunks are labeled
+* Citation validity against retrieved chunks
+* Correct abstention on unanswerable questions
+* Displayed-claim support, claim citation coverage, answer coverage, conflicts, and verification p50/p95
+
+Start with `data/eval_set.example.json` and replace its placeholder references with manually verified labels from your corpus.
+
+For a complete reproducible demo, enable **Use bundled sanitized demo corpus** on the ingestion page, build the index with the default chunk settings, then upload `data/public_demo_benchmark.json` on the Evaluation page. Its 60 labeled questions map deterministically to 60 single-chunk knowledge cards. The original six-card corpus remains available under `data/public_demo_small/`.
+
+The default Evaluation comparison is `hybrid_rrf` versus `hybrid_rerank`. It writes schema 3.3 manifests with retrieval and grounding policy fingerprints, source-tree and runtime metadata, per-question results, stage latency, category slices, and a portfolio comparison artifact. See [the reranking benchmark methodology](docs/RERANKING_BENCHMARK.md), [the claim-grounding methodology](docs/CLAIM_LEVEL_GROUNDING.md), and [the release quality procedure](docs/QUALITY_GATE_RELEASE.md). Neither reranking nor grounding is claimed as an improvement until a retained CPU run passes its promotion gate.
+
+The original baseline accuracy remains:
 
 ```
 accuracy = correct_answers / total_questions
@@ -151,15 +196,16 @@ Evaluation results are saved to disk and displayed in the UI.
 
 For every query, the system logs:
 
-* Retrieval latency (FAISS)
+* Dense, lexical, fusion, and reranking stage latency
 * Generation latency (Gemini)
+* Claim verification latency and accepted/rejected/conflict counts
 * Total end-to-end latency
 
 This allows comparison between:
 
 * Baseline vs tuned retrieval
 * Different Top-K values
-* MMR vs standard similarity search
+* Dense, MMR, hybrid RRF, and reranked hybrid retrieval
 
 ---
 
@@ -170,6 +216,8 @@ This allows comparison between:
 * Python
 * FAISS (vector database)
 * SentenceTransformers (embeddings)
+* DeBERTa-v3 xsmall NLI cross-encoder (local claim verification)
+* MiniLM cross-encoder (local reranking)
 * Gemini API (LLM)
 
 **Frontend**
@@ -203,11 +251,17 @@ rag-studio/
 ├── backend/            # Core RAG logic
 │   ├── loaders.py
 │   ├── chunking.py
+│   ├── document_parsers.py
+│   ├── contextual_chunking.py
+│   ├── ingestion_registry.py
+│   ├── ingestion.py
 │   ├── embeddings.py
 │   ├── vectorstore.py
 │   ├── retriever.py
+│   ├── reranker.py
 │   ├── qa.py
-│   └── eval.py
+│   ├── eval.py
+│   └── experiments.py
 │
 ├── data/               # Input PDFs
 ├── index/              # FAISS index (gitignored)
@@ -237,6 +291,38 @@ cp .env.example .env
 streamlit run app/Home.py
 ```
 
+## Deploy
+
+### Docker (recommended)
+
+```bash
+docker build -t explainable-rag-studio .
+docker run --rm -p 8501:8501 -e GEMINI_API_KEY=your_key explainable-rag-studio
+```
+
+The image installs Tesseract OCR and prefetches the default reranker so deployed instances do not download it on their first reranked query. The container exposes the app on port `8501` and includes a Streamlit health check. On platforms such as Render, Railway, Fly.io, or Cloud Run, deploy the included `Dockerfile`, set `GEMINI_API_KEY` as a secret, and allow the platform to provide `PORT`.
+
+Release validation can opt into the real-model smoke test after the model is cached:
+
+```bash
+RUN_RERANKER_SMOKE=1 pytest -q -m slow tests/test_reranker_slow.py
+```
+
+The complete offline release evidence run is headless:
+
+```bash
+python scripts/calibrate_grounding.py --allow-small-fallback
+python scripts/evaluate_grounding_policy.py outputs/grounding_policy.json
+python scripts/run_release_validation.py
+python scripts/run_release_validation.py --validate outputs/releases/<release_id>
+```
+
+### Streamlit Community Cloud
+
+Select `app/Home.py` as the entry point and add `GEMINI_API_KEY` in the app's secret settings. The checked-in `.streamlit/config.toml` supplies the production theme and server configuration.
+
+> Uploaded documents, the FAISS index, and telemetry are currently stored on the local filesystem. Use a persistent volume for a single hosted instance; a multi-instance deployment should move documents, index metadata, and telemetry to shared managed storage.
+
 ---
 
 ## 🔐 Security & Best Practices
@@ -244,6 +330,8 @@ streamlit run app/Home.py
 * `.env` is gitignored (API keys never committed)
 * FAISS index is built locally (not stored in repo)
 * System gracefully falls back to extractive mode if LLM key is missing
+* Context generation falls back to deterministic document metadata if Gemini is missing or unavailable
+* Index generations are validated in staging and atomically activated
 
 ---
 
@@ -262,13 +350,30 @@ It is intentionally built to be **interview-demo ready**.
 
 ## 📌 Future Improvements
 
-* Hybrid retrieval (BM25 + vectors)
-* Cross-encoder reranking
-* Citation correctness scoring
+* Calibrated domain-specific claim-verifier training
 * LLM-as-judge evaluation
-* Cloud deployment (Docker + API)
+* Shared storage for multi-instance deployment
 
 ---
 
 **Author:** Harsh Mahesh Tikone
 **Focus:** AI / ML Engineering, RAG Systems, Applied LLMs
+## Protected deployment
+
+Production-style local deployment is deny-by-default. Set `SECURITY_MODE=required`, generate independent high-entropy values for `API_KEY_PEPPER` and `AUDIT_HMAC_KEY`, and keep both outside source control. Create the first organization and one-time owner key with:
+
+```powershell
+python scripts/bootstrap_security.py --organization "Example" --email "owner@example.com"
+```
+
+The secret is shown once. Indexes, lifecycle jobs, reviews, and caches live under `index/organizations/<organization_id>/`. The bearer key determines the organization; request bodies cannot select or override it.
+
+For a read-only public demonstration, set `SECURITY_MODE=demo`. Anonymous access is limited to the sanitized `org_public` query experience and health checks. Uploads, document inventory, evaluation, review, telemetry, and administration still require a scoped key.
+
+Security utilities:
+
+- `python scripts/audit_security.py verify` verifies the append-only audit hash chain.
+- `python scripts/migrate_tenants.py` migrates a provably public legacy index into `org_public`.
+- `python scripts/scan_private_history.py` reports manifest-listed private files still reachable in Git history.
+
+See [docs/security-history-cleanup.md](docs/security-history-cleanup.md) before any history rewrite. The rewrite is intentionally not automated.

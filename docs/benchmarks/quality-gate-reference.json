@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.1",
+  "release_id": "20260902T203140Z",
+  "source_tree_fingerprint": "7c9ac7d3a1b3bf6c184d715a39d6b4fb5ec43f4223ae354d40ff17cad38a1a12",
+  "quality_gate": {
+    "schema_version": "1.1",
+    "release_id": "20260902T203140Z",
+    "retrieval": {
+      "closed": true,
+      "promoted": false,
+      "retained_strategy": "hybrid_rrf",
+      "gates": {
+        "passed": false,
+        "same_inputs": true,
+        "quality_labeled": true,
+        "recall_delta": 0.040000000000000036,
+        "mrr_delta": 0.05800000000000016,
+        "ndcg_delta": 0.06287613118498858,
+        "retrieval_p95_delta_ms": 1979.972235008591,
+        "quality_ok": true,
+        "citation_ok": true,
+        "latency_ok": false
+      }
+    },
+    "grounding": {
+      "closed": true,
+      "promoted": false,
+      "retained_policy": "strict_safe_abstention",
+      "gates": {
+        "passed": false,
+        "gates": {
+          "matching_retrieval": true,
+          "matching_draft_claims": true,
+          "matching_policy": true,
+          "supported_precision": true,
+          "macro_f1": false,
+          "contradiction_recall": false,
+          "displayed_claim_support": true,
+          "citation_coverage": true,
+          "citation_validity": true,
+          "zero_unsupported_exposure": true,
+          "answer_coverage": true,
+          "answer_accuracy_regression": false,
+          "abstention_regression": false,
+          "verification_latency": true
+        },
+        "measured": {
+          "supported_precision": 1.0,
+          "macro_f1": 0.6681729576466419,
+          "contradiction_recall": 0.8125,
+          "answer_coverage": 0.96,
+          "unsupported_exposed": 0,
+          "answer_accuracy_delta": -0.21666666666666667,
+          "abstention_accuracy_delta": -0.033333333333333326,
+          "verification_p95_ms": 1294.0980449915514
+        }
+      }
+    },
+    "runtime": {
+      "closed": true,
+      "promoted": false,
+      "gates": {
+        "python_3_11": false,
+        "docker_build": false,
+        "streamlit_health": false,
+        "api_smoke": false,
+        "dependency_check": true
+      }
+    },
+    "overall": {
+      "promoted": false,
+      "all_decisions_closed": true
+    }
+  },
+  "grounding_heldout": {
+    "macro_f1": 0.6681729576466419,
+    "supported_precision": 1.0,
+    "contradiction_recall": 0.8125
+  },
+  "retrieval": {
+    "hybrid_rrf": {
+      "recall_at_5": 0.96,
+      "mrr": 0.8386666666666666,
+      "ndcg_at_5": 0.8523076521565726,
+      "retrieval_p95_ms": 16.93085497245192
+    },
+    "hybrid_rerank": {
+      "recall_at_5": 1.0,
+      "mrr": 0.8966666666666667,
+      "ndcg_at_5": 0.9151837833415611,
+      "retrieval_p95_ms": 1996.903089981043
+    }
+  },
+  "strict_qa": {
+    "accuracy": 0.2,
+    "baseline_accuracy": 0.4166666666666667,
+    "abstention_accuracy": 0.8,
+    "baseline_abstention_accuracy": 0.8333333333333334,
+    "answer_coverage": 0.96,
+    "citation_validity": 1.0,
+    "claim_citation_coverage": 1.0,
+    "verification_p95_ms": 1294.0980449915514
+  }
+}

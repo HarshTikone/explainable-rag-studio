@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 .env
+.secrets/
 .venv/
 venv/
 
@@ -12,7 +13,8 @@ venv/
 Thumbs.db
 
 # Streamlit
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml
 
 # Vector DB / runtime artifacts
 index/
@@ -20,6 +22,11 @@ outputs/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Logs
 *.log
