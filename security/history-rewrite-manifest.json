@@ -7,6 +7,25 @@
   ],
   "authorized": true,
   "authorization_source": "User request in the release-platform implementation task",
-  "status": "pending_backup_and_rewrite",
-  "note": "Authorization is recorded. Execution still requires the verified mirror backup and exact force-with-lease procedure in docs/RELEASE_CLOSURE.md."
+  "status": "completed_locally_pending_guarded_push",
+  "completed_at": "2026-09-02T20:40:46.6374044Z",
+  "pre_rewrite_release_revision": "061934f31ff149dcbb65d162cb92eaf7d53c77c8",
+  "pre_rewrite_origin_main": "a34db5bf90716efc30ab0ab186c78faefa8693c2",
+  "rewritten_revision": "abb42a884beb45868b48b961faa5040fe86e12ae",
+  "removed_blob_ids": [
+    "cb552d48fc92d6511e62aad874f90e715a0b12df",
+    "30b5628d1c091c16612a6787b671cf1ea06dc513",
+    "a3bfbbcc6d5647a24fac63a9e1690f1e7b23eba8"
+  ],
+  "backup": {
+    "mirror_identifier": "explainable-rag-studio-history-backup-20260902.git",
+    "bundle_identifier": "explainable-rag-studio-history-backup-20260902.bundle",
+    "bundle_sha256": "C4A8204F026177DB298106AD81978B3BBD4AED35353EED73D73B39EBD66C7CAA"
+  },
+  "verification": {
+    "manifest_paths_reachable": false,
+    "removed_blob_ids_reachable": false,
+    "git_fsck_succeeded": true
+  },
+  "note": "The pre-rewrite mirror is intentionally offline and must remain access-controlled. Collaborators must discard old clones after the guarded push."
 }
