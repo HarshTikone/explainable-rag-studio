@@ -7,6 +7,7 @@ __pycache__/
 .secrets/
 .venv/
 venv/
+.python311-portable/
 
 # OS
 .DS_Store

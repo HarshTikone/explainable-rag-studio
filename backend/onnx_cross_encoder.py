@@ -28,13 +28,18 @@ class NativeOnnxCrossEncoder:
         from huggingface_hub import hf_hub_download
         from transformers import AutoTokenizer
 
-        model_path = hf_hub_download(repo_id=model_name, filename=file_name, revision=revision)
+        # The constructor rejects an empty revision above; release config pins immutable commit SHAs.
+        model_path = hf_hub_download(  # nosec B615
+            repo_id=model_name, filename=file_name, revision=revision
+        )
         options = ort.SessionOptions()
         options.intra_op_num_threads = max(1, cpu_threads)
         options.inter_op_num_threads = 1
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         self.session = ort.InferenceSession(model_path, sess_options=options, providers=["CPUExecutionProvider"])
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
+        self.tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
+            model_name, revision=revision
+        )
         self.max_length = max_length
         self.input_names = {item.name for item in self.session.get_inputs()}
         self.cache_size = max(1, cache_size)

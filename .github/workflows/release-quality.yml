@@ -9,6 +9,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
