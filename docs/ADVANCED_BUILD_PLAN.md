@@ -86,19 +86,19 @@ Duration: 1–2 weeks
 
 Exit gate: unsupported claims are flagged before display and citation validity remains 100% in CI.
 
-## Milestone 5 — Security and multi-tenancy
+## Milestone 5 — Security and multi-tenancy (implemented)
 
 Duration: 2 weeks
 
-- Add users, organizations, corpus ownership, and permission-aware retrieval filters.
-- Enforce access filtering inside retrieval rather than after retrieval.
-- Validate files, MIME type, size, source trust, and extracted content.
-- Detect instruction-like text and hidden-content anomalies during ingestion.
-- Add red-team cases for indirect prompt injection, poisoning, data exfiltration, and tenant leakage.
-- Add immutable retrieval audit events with safe redaction.
-- Remove personal résumé PDFs and other private material from the public Git history.
+- ✅ Add users, organizations, corpus ownership, and permission-aware retrieval filters. (`backend/security_models.py` roles/scopes, `backend/tenant_store.py` physically isolated per-organization FAISS stores)
+- ✅ Enforce access filtering inside retrieval rather than after retrieval. (`backend/retriever.py` + `security_models.RetrievalScope`, verified in `tests/test_tenant_isolation.py` across all 4 retrieval strategies)
+- ✅ Validate files, MIME type, size, source trust, and extracted content. (`backend/security_scanner.py`)
+- ✅ Detect instruction-like text and hidden-content anomalies during ingestion. (`backend/security_scanner.py` prompt-injection pattern detection, hidden-HTML/base64-payload detection, quarantine)
+- ✅ Add red-team cases for indirect prompt injection, poisoning, data exfiltration, and tenant leakage. (`tests/test_security_scanner.py`, `tests/test_security.py`, `tests/test_api_security.py`, `tests/test_tenant_isolation.py`)
+- ✅ Add immutable retrieval audit events with safe redaction. (`backend/security.py` / `backend/postgres_security.py`, hash-chained HMAC audit log with `verify_audit_chain`)
+- ✅ Remove personal résumé PDFs and other private material from the public Git history. (confirmed absent via `git log --all --diff-filter=A`; history rewrite documented in `docs/security-history-cleanup.md`)
 
-Exit gate: automated tests prove that no query can retrieve or cite another tenant's document.
+Exit gate: automated tests prove that no query can retrieve or cite another tenant's document. **Met** — `tests/test_tenant_isolation.py` passes for all 4 retrieval strategies.
 
 ## Milestone 6 — Production platform
 
