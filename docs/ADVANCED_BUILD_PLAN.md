@@ -86,19 +86,19 @@ Duration: 1–2 weeks
 
 Exit gate: unsupported claims are flagged before display and citation validity remains 100% in CI.
 
-## Milestone 5 — Security and multi-tenancy
+## Milestone 5 — Security and multi-tenancy (implemented)
 
 Duration: 2 weeks
 
-- Add users, organizations, corpus ownership, and permission-aware retrieval filters.
-- Enforce access filtering inside retrieval rather than after retrieval.
-- Validate files, MIME type, size, source trust, and extracted content.
-- Detect instruction-like text and hidden-content anomalies during ingestion.
-- Add red-team cases for indirect prompt injection, poisoning, data exfiltration, and tenant leakage.
-- Add immutable retrieval audit events with safe redaction.
-- Remove personal résumé PDFs and other private material from the public Git history.
+- ✅ Add users, organizations, corpus ownership, and permission-aware retrieval filters. (`backend/security_models.py` roles/scopes, `backend/tenant_store.py` physically isolated per-organization FAISS stores)
+- ✅ Enforce access filtering inside retrieval rather than after retrieval. (`backend/retriever.py` + `security_models.RetrievalScope`, verified in `tests/test_tenant_isolation.py` across all 4 retrieval strategies)
+- ✅ Validate files, MIME type, size, source trust, and extracted content. (`backend/security_scanner.py`)
+- ✅ Detect instruction-like text and hidden-content anomalies during ingestion. (`backend/security_scanner.py` prompt-injection pattern detection, hidden-HTML/base64-payload detection, quarantine)
+- ✅ Add red-team cases for indirect prompt injection, poisoning, data exfiltration, and tenant leakage. (`tests/test_security_scanner.py`, `tests/test_security.py`, `tests/test_api_security.py`, `tests/test_tenant_isolation.py`)
+- ✅ Add immutable retrieval audit events with safe redaction. (`backend/security.py` / `backend/postgres_security.py`, hash-chained HMAC audit log with `verify_audit_chain`)
+- ✅ Remove personal résumé PDFs and other private material from the public Git history. (confirmed absent via `git log --all --diff-filter=A`; history rewrite documented in `docs/security-history-cleanup.md`)
 
-Exit gate: automated tests prove that no query can retrieve or cite another tenant's document.
+Exit gate: automated tests prove that no query can retrieve or cite another tenant's document. **Met** — `tests/test_tenant_isolation.py` passes for all 4 retrieval strategies.
 
 ## Milestone 6 — Production platform
 
@@ -121,6 +121,28 @@ Duration: 1 week
 - Commit the architecture diagram, threat model, benchmark methodology, experiment table, and load-test report.
 - Write two engineering case studies: retrieval improvement and RAG security testing.
 - Report only reproducible metrics generated from committed experiment manifests.
+
+## Milestone 6.5 — Close the outstanding quality gates (attempted 2026-09-12)
+
+Duration: 2–3 weeks. Genuinely unfinished per `docs/QUALITY_GATE_RELEASE.md`'s retained result: benchmark under target (60 questions/6 categories/16.7% adversarial vs. 100+/20%), reranking rejected on latency (candidate-retrieval p95 1980.75 ms vs. the 1500 ms budget in `backend/experiments.py`), grounding rejected on both quality (held-out macro F1 0.686, contradiction recall 0.8125) and latency (verification p95 1538.63 ms), and the runtime gate never run for real (prior attempts logged Python 3.12 with no Docker).
+
+**This session's attempt hit a different, more specific blocker than the prior "no Docker" note**, worth recording precisely so the next attempt doesn't repeat the diagnosis:
+
+- Python 3.11.15 and a working Docker Engine + Compose were both available here (`dockerd` started cleanly as root).
+- However, this session's outbound network egress is allowlisted by organization policy, and the policy explicitly rejects (403, "policy denial", confirmed via the agent-proxy status endpoint — not a transient failure) three hosts that essentially all of Milestone 6.5's empirical work depends on:
+  - `huggingface.co` — blocks downloading the embedding model (`sentence-transformers/all-MiniLM-L6-v2`), the reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`), and the grounding NLI model (`cross-encoder/nli-deberta-v3-xsmall`) used by `backend/embeddings.py`, `backend/onnx_cross_encoder.py`, and `scripts/prefetch_models.py`.
+  - `openaipublic.blob.core.windows.net` — blocks `tiktoken`'s one-time download of the `cl100k_base` vocabulary used by token-based chunking (`backend/chunking.py`), which in turn breaks contextual ingestion for arbitrary documents (see 6.5.4 below for the one case where this was still worked around).
+  - `production.cloudfront.docker.com` — blocks pulling image layers for the Compose stack's base images (Docker Hub's registry API answered, but blob/layer fetches from its CDN were rejected), so `docker compose build` cannot complete even though the daemon runs fine.
+- Per this environment's own proxy guidance, a 403 policy denial is to be reported, not routed around — there is no legitimate workaround from inside the session (no alternate mirror was probed further once the policy-denial pattern was confirmed across independent hosts).
+- Net effect: 91/106 fast tests pass with a from-scratch `pip install -r requirements.txt` under Python 3.11; the 13 failures (`test_contextual_ingestion.py`, `test_demo_benchmark.py::test_benchmark_labels_resolve_against_rebuilt_default_chunks`, `test_grounding_eval.py::test_public_grounding_benchmark_has_96_valid_stable_cases`, `test_release_quality.py::test_mocked_release_writes_and_validates_schema_33_artifact`) all trace to one of the three blocked hosts above, not to application logic.
+- **What unblocks this milestone:** run it in an environment whose egress policy allows `huggingface.co`, `production.cloudfront.docker.com` (or an alternate Docker registry mirror), and `openaipublic.blob.core.windows.net` — or pre-provision the required model weights, ONNX files, tokenizer vocab, and base image layers into the environment before the session starts so no runtime download is needed.
+- No code, config, or threshold was changed to compensate for this — per this project's own rule, unverified performance or quality claims are not written into this document or into `docs/benchmarks/quality-gate-reference.json`. The reranker and grounding latency/quality fixes described below in 6.5.2/6.5.3 remain to be attempted once real model access is available; `backend/reranker.py`'s batching and `backend/onnx_cross_encoder.py`'s dynamic per-request padding were read and found structurally sound on inspection, so the highest-leverage remaining lever is very likely candidate-pool size (`SETTINGS.rerank_candidates`, currently 30) per the original plan's own ranking — but that change should not ship without a live `scripts/run_release_validation.py` pass to confirm Recall@5/MRR are retained at a smaller pool.
+
+### 6.5.4 — Benchmark expansion (done in this session, network-free)
+
+Unlike 6.5.1–6.5.3, benchmark expansion does not require the models it was assumed to need. `backend/contextual_chunking.py`'s chunk-id hash (`sha256(document_id, heading_path, parent.ordinal, child_ordinal, text)`) does not depend on tiktoken's specific BPE algorithm — it only depends on tiktoken *not splitting* the chunk, which is guaranteed here because every `data/public_demo` document (200–530 bytes) sits far below the 420/1200-token child/parent limits, so `chunk_text_token_based`'s encode/decode round trip is a no-op and the hashed text is exactly the normalized heading plus paragraph. `document_id` (`backend/document_parsers.py:stable_document_id`) and the version-inference rule (`Status:` line, else filename suffix, else `"general"`) are pure-Python and also network-free. Reimplementing this formula from reading the source and testing it against all 29 chunk_ids already committed in `data/public_demo_benchmark.json` reproduced every one exactly, so it was used to compute correct chunk_ids for 12 previously-uncited documents (the 5 singleton docs 02–06 and the 8 access/response/routing/eval/storage/observe/locale/lifecycle current+incident docs whose facts had never been cited).
+
+Result: `data/public_demo_benchmark.json` grew from 60 to 112 questions, all 6 categories still represented (17/18/17/17/18/25 for exact_term/identifier/paraphrase/hard_negative/multi_hop/unanswerable), unanswerable share up from 16.7% to 22.3% (target: 20%+). Every new item's answer was checked by hand against the cited document's text. `tests/test_demo_benchmark.py`'s schema test was loosened from exact counts (`== 60`, `== 10` per category) to floor checks (`>= 100` total, `>= 10` per category, `>= 20%` unanswerable) plus a new uniqueness check, since the project's own target is a floor, not an exact count. `test_benchmark_labels_resolve_against_rebuilt_default_chunks` (the test that actually rebuilds the corpus and checks `labeled_ids <= chunk_ids`) still needs tiktoken to run and so still fails in this sandbox, but it was not touched — the chunk-id and version-inference logic used to generate the new items *is* that test's logic, reimplemented and cross-checked, so it is expected to pass once run somewhere with network access.
 
 ## Recommended implementation order
 

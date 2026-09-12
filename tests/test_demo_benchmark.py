@@ -7,12 +7,17 @@ from backend.document_parsers import parse_document
 
 def test_public_demo_benchmark_is_complete_and_sanitized():
     items = json.loads(Path("data/public_demo_benchmark.json").read_text(encoding="utf-8"))
-    assert len(items) == 60
-    assert {item["category"] for item in items} == {"exact_term", "identifier", "paraphrase", "hard_negative", "multi_hop", "unanswerable"}
-    assert all(sum(1 for item in items if item["category"] == category) == 10 for category in {item["category"] for item in items})
-    assert all(item["relevant_chunk_ids"] == [] for item in items if not item["answerable"])
+    categories = {"exact_term", "identifier", "paraphrase", "hard_negative", "multi_hop", "unanswerable"}
+    assert len(items) >= 100
+    assert {item["category"] for item in items} == categories
+    counts = {category: sum(1 for item in items if item["category"] == category) for category in categories}
+    assert all(count >= 10 for count in counts.values())
+    unanswerable_share = counts["unanswerable"] / len(items)
+    assert unanswerable_share >= 0.20
+    assert all((item["relevant_chunk_ids"] == []) == (not item["answerable"]) for item in items)
     assert all(all(chunk_id.startswith("chk_") for chunk_id in item["relevant_chunk_ids"]) for item in items)
     assert all("expected_source_versions" in item for item in items)
+    assert len({item["question"] for item in items}) == len(items)
 
 
 def test_public_demo_documents_have_deterministic_order():
