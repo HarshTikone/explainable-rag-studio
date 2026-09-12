@@ -131,7 +131,6 @@ class S3EnvelopeObjectStore:
             Body=encrypted,
             ContentType="application/octet-stream",
             Metadata=safe_metadata,
-            ServerSideEncryption="AES256",
         )
         return StoredObject(
             organization_id=organization_id,
