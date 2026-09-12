@@ -9,6 +9,10 @@ class Settings:
     # production platform (legacy keeps the offline FAISS/SQLite demo readable)
     platform_mode: str = os.getenv("PLATFORM_MODE", "legacy").strip().lower()
     database_url: str = os.getenv("DATABASE_URL", "")
+    # Bypasses row-level security for pg_dump/pg_restore; database_url's role
+    # (rag_app) is deliberately NOBYPASSRLS and can't produce a complete backup.
+    # Falls back to database_url where an admin connection isn't configured.
+    admin_database_url: str = os.getenv("ADMIN_DATABASE_URL", "") or os.getenv("DATABASE_URL", "")
     redis_url: str = os.getenv("REDIS_URL", "")
     object_store_endpoint: str = os.getenv("OBJECT_STORE_ENDPOINT", "")
     object_store_region: str = os.getenv("OBJECT_STORE_REGION", "us-east-1")

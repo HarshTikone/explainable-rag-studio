@@ -120,7 +120,21 @@ services:
     build: {context: ., args: {PREFETCH_MODELS: "false"}}
     command: ["sh", "deploy/start-service.sh", "api"]
     environment: *app-environment
-    secrets: *app-secrets
+    secrets:
+      - api_key_pepper
+      - audit_hmac_key
+      - rag_app_password
+      - minio_access_key
+      - minio_secret_key
+      - object_master_key
+      - oidc_client_secret
+      - redis_password
+      # Backup/restore (scripts/platform_backup.py, restore_validate.py) need a
+      # role that bypasses row-level security; rag_app is deliberately
+      # NOBYPASSRLS for tenant isolation during normal request handling, so
+      # only the api container additionally gets the postgres superuser
+      # credential, used solely for pg_dump/pg_restore.
+      - postgres_password
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
