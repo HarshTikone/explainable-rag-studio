@@ -15,11 +15,20 @@ from sqlalchemy import delete, func, select
 from .database import AuditEvent, Chunk, DatabaseRuntime, ObjectRecord, Organization, RetentionRecord
 
 
+def _libpq_url(sqlalchemy_url: str) -> str:
+    """Strip SQLAlchemy's "+driver" dialect suffix (e.g. "postgresql+psycopg://")
+    so libpq-based tools (pg_dump, pg_restore) can parse the connection URI.
+    Passed as-is, libpq fails to recognize the scheme and silently falls back
+    to a local unix-socket connection instead of erroring on the bad URI."""
+    scheme, _, rest = sqlalchemy_url.partition("://")
+    return f"{scheme.split('+', 1)[0]}://{rest}"
+
+
 def create_encrypted_backup(database_url: str, object_store, organization_id: str = "org_platform") -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="rag-backup-") as directory:
         dump = Path(directory) / "database.dump"
         environment = dict(os.environ)
-        completed = subprocess.run(["pg_dump", "--format=custom", "--file", str(dump), database_url],
+        completed = subprocess.run(["pg_dump", "--format=custom", "--file", str(dump), _libpq_url(database_url)],
                                    env=environment, capture_output=True, text=True, timeout=3600)
         if completed.returncode:
             raise RuntimeError("pg_dump failed: " + completed.stderr[-1000:])
@@ -39,7 +48,7 @@ def restore_and_validate(source_url: str, restore_url: str, dump_bytes: bytes) -
         dump = Path(directory) / "database.dump"
         dump.write_bytes(dump_bytes)
         started = datetime.now(timezone.utc)
-        completed = subprocess.run(["pg_restore", "--clean", "--if-exists", "--no-owner", "--dbname", restore_url, str(dump)],
+        completed = subprocess.run(["pg_restore", "--clean", "--if-exists", "--no-owner", "--dbname", _libpq_url(restore_url), str(dump)],
                                    capture_output=True, text=True, timeout=4 * 3600)
         if completed.returncode:
             raise RuntimeError("pg_restore failed: " + completed.stderr[-1000:])
