@@ -144,6 +144,34 @@ Unlike 6.5.1–6.5.3, benchmark expansion does not require the models it was ass
 
 Result: `data/public_demo_benchmark.json` grew from 60 to 112 questions, all 6 categories still represented (17/18/17/17/18/25 for exact_term/identifier/paraphrase/hard_negative/multi_hop/unanswerable), unanswerable share up from 16.7% to 22.3% (target: 20%+). Every new item's answer was checked by hand against the cited document's text. `tests/test_demo_benchmark.py`'s schema test was loosened from exact counts (`== 60`, `== 10` per category) to floor checks (`>= 100` total, `>= 10` per category, `>= 20%` unanswerable) plus a new uniqueness check, since the project's own target is a floor, not an exact count. `test_benchmark_labels_resolve_against_rebuilt_default_chunks` (the test that actually rebuilds the corpus and checks `labeled_ids <= chunk_ids`) still needs tiktoken to run and so still fails in this sandbox, but it was not touched — the chunk-id and version-inference logic used to generate the new items *is* that test's logic, reimplemented and cross-checked, so it is expected to pass once run somewhere with network access.
 
+### 6.5.1–6.5.2 — Runtime and reranker gates closed for real, via GitHub Actions (2026-09-12)
+
+The sandbox network block described above is a property of this coding session's own container, not of every environment — `.github/workflows/release-quality.yml` already existed for exactly this reason (a manual `workflow_dispatch` job on a GitHub-hosted runner with normal internet access) but had never once completed: all three prior runs on `main` died inside "Build and start portable platform," and the retained result in `docs/QUALITY_GATE_RELEASE.md` explicitly says so ("this host uses Python 3.12 and has no Docker installation; the manual Python 3.11 workflow is the authoritative remaining runtime check").
+
+Manually dispatching that workflow against this branch surfaced nine independent, genuine infrastructure bugs in sequence — each one only visible once the previous was fixed, since the pipeline died at the first failure every time:
+
+1. `minio/minio` and `minio/mc` pulls denied by Docker Hub (anonymous pulls retired) → switched to `quay.io/minio/minio` and `quay.io/minio/mc`.
+2. `scripts/generate_dev_secrets.py` wrote Docker secret files as `0600`; Compose bind-mounts them verbatim into containers running as a different, unprivileged UID → `0644`.
+3. Keycloak's bootstrap-admin CLI validation runs before `_FILE`-suffixed secrets resolve, so `KC_BOOTSTRAP_ADMIN_PASSWORD_FILE` was invisible when checked → resolved both Keycloak secrets to plain env vars via a shell wrapper before invoking `kc.sh`.
+4. `docker compose exec` doesn't inherit `start-service.sh`'s runtime-exported env vars (`DATABASE_URL`, etc.) → split that export logic into a shared, sourceable `deploy/env-secrets.sh`.
+5. `python scripts/x.py` doesn't add `/app` to `sys.path` the way `uvicorn`/`alembic` do internally → `ENV PYTHONPATH=/app` in the Dockerfile.
+6. `pg_dump`/`pg_restore` don't understand SQLAlchemy's `postgresql+psycopg://` scheme and silently fall back to a local unix socket instead of erroring → added `_libpq_url()` to strip the driver suffix.
+7. `rag_app` (the app's own DB role) is deliberately `NOBYPASSRLS` for tenant isolation, so it cannot produce a complete `pg_dump`; Postgres correctly refuses rather than silently filtering rows → backup/restore now authenticate as `rag_owner` (the Postgres superuser) via a dedicated `ADMIN_DATABASE_URL`, mounted only into the `api` container.
+8. MinIO requires a configured KMS backend to honor *any* `PutObject` server-side-encryption request (even plain AES256/SSE-S3), which this reference stack doesn't configure → dropped the redundant `ServerSideEncryption="AES256"` request, since the payload is already client-side envelope-encrypted (AES-256-GCM) before upload.
+9. Debian's generic `postgresql-client` metapackage drifted ahead of the `pgvector/pgvector:pg16` server, so a newer `pg_restore` emitted session setup (`transaction_timeout`, added in PG17) the pg16 server rejects → pinned `postgresql-client-16` via the official PGDG apt repo.
+
+Each fix was validated by re-dispatching the real workflow against GitHub's runner (not assumed) before moving to the next failure. The ninth run completed the full pipeline for the first time in this project's history, producing retained release `20260912T154030Z`:
+
+| Decision | Result |
+|---|---|
+| Runtime | **promoted** — Python 3.11, Docker build, Streamlit health, API smoke, and dependency checks all passed |
+| Retrieval | **promoted** — `hybrid_rerank` retained; Recall@5 +0.0345, MRR +0.0218, nDCG@5 +0.0356, all latency and citation gates passed |
+| Grounding | **rejected** — `strict_safe_abstention`; macro F1 0.668 and contradiction recall 0.8125 still below their bars, and a new answer-accuracy regression (−0.214) was measured against the held-out set; verification latency itself now passes (294 ms, well under budget) |
+| Security | **promoted** |
+| Overall | **rejected** — blocked solely by the grounding decision |
+
+This closes Milestone 6.5.1 (the runtime gate has now genuinely run and passed) and, incidentally, Milestone 6.5.2 as originally scoped (the reranker latency and quality gates both pass on this run) — no config or threshold was changed to get there; `SETTINGS.rerank_candidates` is untouched at 30. What remains of Milestone 6.5.3 is a real, separate ML problem, not an infrastructure one: recalibrating the grounding policy's premise strategy and thresholds via `scripts/calibrate_grounding.py --allow-small-fallback` against the 48 calibration cases only, with particular attention to contradiction recall (the weaker of the two failing metrics) and the newly-visible answer-accuracy regression.
+
 ## Recommended implementation order
 
 1. Finish experiment manifests and baseline benchmark.
