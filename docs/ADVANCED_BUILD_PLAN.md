@@ -104,13 +104,13 @@ Exit gate: automated tests prove that no query can retrieve or cite another tena
 
 Duration: 2 weeks
 
-- Replace local-only metadata with PostgreSQL and pgvector behind a storage interface; keep FAISS for the lightweight local profile.
-- Add async ingestion workers, idempotency keys, streaming answers, timeouts, retries, rate limits, authentication, and API versioning.
-- Instrument parsing, embedding, retrieval, fusion, reranking, generation, and citation verification with OpenTelemetry.
-- Track p50/p95/p99 latency, token usage, cost, cache hit rate, errors, and quality feedback.
-- Add database migrations, backups, restore documentation, load tests, and deployment runbooks.
+- ✅ Replace local-only metadata with PostgreSQL and pgvector behind a storage interface; keep FAISS for the lightweight local profile.
+- ✅ Add async ingestion workers, idempotency keys, streaming answers, timeouts, retries, rate limits, authentication, and API versioning.
+- ❌ Instrument parsing, embedding, retrieval, fusion, reranking, generation, and citation verification with OpenTelemetry. Not started — no `opentelemetry-*` dependency exists anywhere in this repo. What does exist is a homegrown, non-OTel latency-tracking system spread across `backend/eval.py`, `backend/experiments.py`, `backend/grounding.py`, `backend/retriever.py`, and `backend/qa.py` (p50/p95/p99 per stage, surfaced on the Streamlit "Latency Dashboard" page) — real, but not what this bullet asked for, and it doesn't cover the rest of the next bullet.
+- ⚠️ Track p50/p95/p99 latency, token usage, cost, cache hit rate, errors, and quality feedback. Latency: done (see above, homegrown). Token usage, cost, and cache hit rate: not tracked anywhere in the codebase. Quality feedback: covered separately by the grounding-review reviewer-label pipeline (`docs/CLAIM_LEVEL_GROUNDING.md`).
+- ✅ Add database migrations (Alembic, `deploy/postgres/`), backups (`scripts/platform_backup.py`/`restore_validate.py`, exercised in CI), restore documentation, load tests (`scripts/load_test.py`, new this session), and deployment runbooks (`docs/DEPLOYMENT_RUNBOOK.md`, new this session).
 
-Exit gate: the container passes health checks, load targets, migration tests, and a documented recovery exercise.
+Exit gate: the container passes health checks (✅, CI-verified), load targets (⚠️ load test now exists and runs in CI, but is report-only — no promotion threshold has been set, since there's no prior baseline to set a defensible one against), migration tests (✅), and a documented recovery exercise (✅, `docs/DEPLOYMENT_RUNBOOK.md`, backed by real repeated CI verification, not just a written procedure). **Real OpenTelemetry instrumentation and token/cost/cache-hit tracking remain genuinely unimplemented** — this is the honest state, not a checklist formality.
 
 ## Milestone 7 — Portfolio evidence
 
