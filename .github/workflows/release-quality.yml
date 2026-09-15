@@ -82,6 +82,21 @@ jobs:
         run: |
           python -c "import json; q=json.load(open('docs/benchmarks/quality-gate-reference.json')); assert q['quality_gate']['overall']['promoted'], q['quality_gate']"
           python -c "import json; q=json.load(open('outputs/security/security_gate.json')); assert q['decision']=='promoted', q['failure_reasons']"
+      - name: Publish quality-gate reference to the run summary
+        # docs/benchmarks/quality-gate-reference.json is regenerated fresh in every run
+        # but the copy tracked in git only ever gets updated by a human/agent copying
+        # numbers out of CI after the fact, so it goes stale between updates. Printing
+        # it into the job summary (rendered directly on the Actions run page) means
+        # anyone can grab the current numbers without downloading the artifact zip --
+        # no repo write access needed, unlike committing it back automatically would be.
+        if: always()
+        run: |
+          {
+            echo '### Quality-gate reference (this run)'
+            echo '```json'
+            cat docs/benchmarks/quality-gate-reference.json 2>/dev/null || echo '(not generated -- an earlier step failed before this file was written)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
