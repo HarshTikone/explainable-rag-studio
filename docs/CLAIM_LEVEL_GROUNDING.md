@@ -11,7 +11,7 @@ The implementation is complete, but no quality improvement is claimed until a re
 1. Retrieve evidence with any existing retrieval strategy.
 2. Ask Gemini for schema-constrained atomic claims, or copy deterministic extractive sentences when Gemini is unavailable.
 3. Reject citations that were not retrieved and run number, identifier, version, and negation checks.
-4. Score claim/evidence pairs with `cross-encoder/nli-deberta-v3-xsmall` on CPU.
+4. Score claim/evidence pairs with `cross-encoder/nli-deberta-v3-small` on CPU.
 5. Scan the top eight retrieved chunks for claim-specific contradictions.
 6. Display only supported claims; abstain when none remain.
 7. Persist disputed and low-confidence cases in `outputs/reviews.db` for local human review.

@@ -216,7 +216,7 @@ This allows comparison between:
 * Python
 * FAISS (vector database)
 * SentenceTransformers (embeddings)
-* DeBERTa-v3 xsmall NLI cross-encoder (local claim verification)
+* DeBERTa-v3 small NLI cross-encoder (local claim verification)
 * MiniLM cross-encoder (local reranking)
 * Gemini API (LLM)
 
