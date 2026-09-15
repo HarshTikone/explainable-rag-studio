@@ -216,7 +216,11 @@ def _normalize(text: str) -> str:
 IMPORTANT_PATTERN = re.compile(
     r"\b(?:[A-Z]{2,}(?:[-_.][A-Z0-9]+)+|(?:[vV]|[vV]ersion\s*)?\d+(?:\.\d+){1,3}|\d+(?:[.,]\d+)?%?)\b",
 )
-NEGATIONS = {"no", "not", "never", "none", "without", "cannot", "can't", "don't", "doesn't", "isn't", "wasn't"}
+NEGATIONS = {
+    "no", "not", "never", "none", "without", "cannot", "can't", "don't", "doesn't", "isn't", "wasn't",
+    "won't", "wouldn't", "shouldn't", "mustn't", "haven't", "hasn't", "hadn't", "aren't", "weren't",
+    "neither", "nor", "unable", "lacks", "lacking",
+}
 NUMBER_WORDS = {
     "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
     "eleven", "twelve", "thirteen", "fourteen", "fifteen", "twenty", "thirty", "forty", "fifty",
@@ -254,11 +258,26 @@ def deterministic_guards(claim: str, evidence: str) -> List[str]:
         reasons.append("NEGATION_NOT_IN_EVIDENCE")
     if claim_negative != evidence_negative and overlap >= 0.40:
         reasons.append("NEGATION_CONFLICT")
-    claim_current = bool(claim_words & {"current", "currently", "today", "continue", "still"})
-    evidence_obsolete = bool(evidence_words & {"obsolete", "retired", "former", "legacy", "invalid"})
+    claim_current = bool(claim_words & {"current", "currently", "today", "continue", "still", "now", "presently", "ongoing"})
+    evidence_obsolete = bool(evidence_words & {
+        "obsolete", "retired", "former", "legacy", "invalid", "deprecated", "outdated", "superseded", "previous", "prior",
+    })
     if claim_current and evidence_obsolete and overlap >= 0.30:
         reasons.append("STATUS_CONFLICT")
-    state_pairs = (("failed", "healthy"), ("healthy", "failed"), ("enabled", "disabled"), ("allowed", "prohibited"))
+    state_pairs = (
+        ("failed", "healthy"), ("healthy", "failed"),
+        ("enabled", "disabled"), ("disabled", "enabled"),
+        ("allowed", "prohibited"), ("prohibited", "allowed"),
+        ("blocked", "approved"), ("approved", "blocked"),
+        ("valid", "invalid"), ("invalid", "valid"),
+        ("available", "unavailable"), ("unavailable", "available"),
+        ("succeeded", "failed"), ("failed", "succeeded"),
+        ("open", "closed"), ("closed", "open"),
+        ("active", "inactive"), ("inactive", "active"),
+        ("required", "optional"), ("optional", "required"),
+        ("accepted", "rejected"), ("rejected", "accepted"),
+        ("granted", "denied"), ("denied", "granted"),
+    )
     if overlap >= 0.30 and any(left in claim_words and right in evidence_words for left, right in state_pairs):
         reasons.append("STATE_CONFLICT")
     return reasons
