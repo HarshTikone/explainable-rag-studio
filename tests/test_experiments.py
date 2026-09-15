@@ -32,7 +32,7 @@ def test_experiment_id_and_artifacts(tmp_path):
     report = run_experiment(BENCHMARK, ask, config, str(tmp_path))
     experiment_dir = tmp_path / "experiments" / config.experiment_id
     assert report["schema_version"] == "3.3"
-    assert report["config"]["grounding_model"] == "cross-encoder/nli-deberta-v3-small"
+    assert report["config"]["grounding_model"] == "cross-encoder/nli-deberta-v3-xsmall"
     assert report["config"]["dependency_versions"]
     assert (experiment_dir / "config.json").exists()
     assert (experiment_dir / "report.json").exists()

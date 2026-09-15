@@ -23,23 +23,6 @@ jobs:
           key: huggingface-${{ runner.os }}-${{ hashFiles('requirements.txt', 'scripts/prefetch_models.py') }}
       - run: pip install -r requirements-dev.txt
       - run: pip check
-      - name: TEMP diagnostic - grounding model id2label
-        # Throwaway step to check a hypothesis for why the nli-deberta-v3-small swap made
-        # calibration fail entirely (0 eligible candidates, vs. xsmall finding at least one):
-        # backend/grounding.py's _label_order() silently falls back to an assumed label order
-        # if the model's own id2label doesn't match {"contradiction","entailment","neutral"}
-        # exactly. If the two models spell/order labels differently, every score for the new
-        # model would be systematically mislabeled. Remove this step once answered either way.
-        run: |
-          python -c "
-          from transformers import AutoConfig
-          for name, rev in [
-              ('cross-encoder/nli-deberta-v3-xsmall', 'a150876415327c80daeff35ca6f68f5ed8cf5c24'),
-              ('cross-encoder/nli-deberta-v3-small', 'fa2804872c3b4bd748f38c0185cc85775361e735'),
-          ]:
-              cfg = AutoConfig.from_pretrained(name, revision=rev)
-              print(name, rev, '->', cfg.id2label)
-          "
       - name: Dependency and static security checks
         run: |
           pip-audit -r requirements.txt

@@ -78,15 +78,8 @@ class Settings:
     model_cpu_threads: int = int(os.getenv("MODEL_CPU_THREADS", "2"))
 
     # claim-level grounding
-    # Was nli-deberta-v3-xsmall/a150876..., but the last real held-out release-quality
-    # run showed that model plateaued well under the promotion bar (macro_f1 0.668,
-    # contradiction_recall 0.8125, both need >=0.85) with no deterministic-guard tuning
-    # able to move it (see PR #4). Promoted the larger model that was already wired in
-    # as GROUNDING_FALLBACK_MODEL/_REVISION below -- same cross-encoder family, same
-    # onnx backend/file convention, just more parameters -- to primary, to test whether
-    # raw verifier capacity is what's actually missing.
-    grounding_model: str = os.getenv("GROUNDING_MODEL", "cross-encoder/nli-deberta-v3-small")
-    grounding_model_revision: str = os.getenv("GROUNDING_MODEL_REVISION", "fa2804872c3b4bd748f38c0185cc85775361e735")
+    grounding_model: str = os.getenv("GROUNDING_MODEL", "cross-encoder/nli-deberta-v3-xsmall")
+    grounding_model_revision: str = os.getenv("GROUNDING_MODEL_REVISION", "a150876415327c80daeff35ca6f68f5ed8cf5c24")
     grounding_batch_size: int = int(os.getenv("GROUNDING_BATCH_SIZE", "16"))
     grounding_max_length: int = int(os.getenv("GROUNDING_MAX_LENGTH", "512"))
     grounding_evidence_scan_k: int = int(os.getenv("GROUNDING_EVIDENCE_SCAN_K", "8"))
