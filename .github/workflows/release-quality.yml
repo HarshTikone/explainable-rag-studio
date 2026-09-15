@@ -65,22 +65,22 @@ jobs:
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/reviews
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/documents
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/audit/verify
+          echo "API_KEY=${API_KEY}" >> "$GITHUB_ENV"
       - name: Load test
         # Milestone 6's exit gate calls for load tests, and Milestone 7 wants a committed
-        # load-test report as portfolio evidence -- neither existed before this. Bootstraps
-        # 10 separate organizations/keys rather than reusing the smoke-test one: the
-        # platform's own per-identity rate limiter (RATE_LIMIT_QUERY_PER_MINUTE, default
-        # 60/min) would otherwise dominate the measurement well before 200 requests, and
-        # round-robining across identities is a closer simulation of concurrent users than
-        # one client hammering a single key anyway.
-        env:
-          API_KEY_PEPPER: release-ci-pepper-not-for-production
-          AUDIT_HMAC_KEY: release-ci-audit-not-for-production
+        # load-test report as portfolio evidence -- neither existed before this. Mints 9
+        # additional API keys under the org bootstrapped in "FastAPI smoke" (POST /api-keys,
+        # not another bootstrap_security.py call -- bootstrap() is a one-time "first owner"
+        # operation and already ran once above; calling it again raises "A first owner
+        # already exists"). The platform's own per-identity rate limiter
+        # (RATE_LIMIT_QUERY_PER_MINUTE, default 60/min) would otherwise dominate the
+        # measurement well before 200 requests, and round-robining across 10 distinct keys
+        # is a closer simulation of concurrent users than one client hammering a single key.
         run: |
-          KEYS=""
-          for i in $(seq 1 10); do
-            KEY=$(docker compose exec -T api sh -c ". deploy/env-secrets.sh && python scripts/bootstrap_security.py --organization \"Load Test Org ${i}\" --email owner${i}@release.invalid" | python -c "import json,sys; print(json.load(sys.stdin)['api_key'])")
-            KEYS="${KEYS}${KEYS:+,}${KEY}"
+          KEYS="${API_KEY}"
+          for i in $(seq 1 9); do
+            KEY=$(curl -sS --fail -X POST -H "Authorization: Bearer ${API_KEY}" -H "Content-Type: application/json" -d '{"scopes":["documents:read"]}' http://127.0.0.1:8000/api-keys | python -c "import json,sys; print(json.load(sys.stdin)['api_key'])")
+            KEYS="${KEYS},${KEY}"
           done
           python scripts/load_test.py --api-keys "${KEYS}" --endpoint /documents --requests 200 --concurrency 10 --output outputs/load_test/report.json
       - name: Backup and restore evidence
