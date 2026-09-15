@@ -60,7 +60,7 @@ jobs:
           AUDIT_HMAC_KEY: release-ci-audit-not-for-production
         run: |
           pytest -q tests/test_api_contract.py
-          docker compose exec -T api python scripts/bootstrap_security.py --organization "Release CI" --email owner@release.invalid > bootstrap.json
+          docker compose exec -T api sh -c '. deploy/env-secrets.sh && python scripts/bootstrap_security.py --organization "Release CI" --email owner@release.invalid' > bootstrap.json
           API_KEY=$(python -c "import json; print(json.load(open('bootstrap.json'))['api_key'])")
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/reviews
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/documents
@@ -68,9 +68,10 @@ jobs:
       - name: Backup and restore evidence
         run: |
           docker compose exec -T postgres createdb -U rag_owner -O rag_app rag_restore
-          BACKUP=$(docker compose exec -T api python scripts/platform_backup.py)
+          BACKUP=$(docker compose exec -T api sh -c '. deploy/env-secrets.sh && python scripts/platform_backup.py')
           OBJECT_KEY=$(printf '%s' "$BACKUP" | python -c "import json,sys; print(json.load(sys.stdin)['object_key'])")
-          docker compose exec -T api python scripts/restore_validate.py "$OBJECT_KEY" --restore-url "postgresql+psycopg://rag_app:$(cat .secrets/rag_app_password)@postgres:5432/rag_restore"
+          RESTORE_URL="postgresql+psycopg://rag_owner:$(cat .secrets/postgres_password)@postgres:5432/rag_restore"
+          docker compose exec -T api sh -c ". deploy/env-secrets.sh && python scripts/restore_validate.py \"$OBJECT_KEY\" --restore-url \"$RESTORE_URL\""
       - name: Retained quality experiment
         run: python scripts/run_release_validation.py --docker-passed --streamlit-passed --api-passed --dependencies-passed
       - name: Validate retained artifact

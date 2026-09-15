@@ -9,6 +9,7 @@ from backend.grounding import verify_claims
 from backend.grounding_models import DraftClaim, StructuredDraft
 from backend.object_store import EnvelopeCipher, MemoryEnvelopeObjectStore, ObjectIntegrityError, S3EnvelopeObjectStore
 from backend.oidc import PkceStateStore
+from backend.platform_operations import _libpq_url
 from backend.rate_limit import MemoryDemoRateLimiter
 from backend.secrets import FileSecretProvider
 
@@ -72,6 +73,11 @@ def test_rls_is_forced_for_every_tenant_table():
 def test_database_runtime_rejects_non_postgres_urls():
     with pytest.raises(ValueError):
         DatabaseRuntime("sqlite:///unsafe.db")
+
+
+def test_libpq_url_strips_sqlalchemy_driver_suffix():
+    assert _libpq_url("postgresql+psycopg://rag_app:pw@postgres:5432/rag") == "postgresql://rag_app:pw@postgres:5432/rag"
+    assert _libpq_url("postgresql://rag_app:pw@postgres:5432/rag") == "postgresql://rag_app:pw@postgres:5432/rag"
 
 
 def test_envelope_cipher_authenticates_tenant_and_ciphertext():
