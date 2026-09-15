@@ -65,6 +65,24 @@ jobs:
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/reviews
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/documents
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/audit/verify
+      - name: Load test
+        # Milestone 6's exit gate calls for load tests, and Milestone 7 wants a committed
+        # load-test report as portfolio evidence -- neither existed before this. Bootstraps
+        # 10 separate organizations/keys rather than reusing the smoke-test one: the
+        # platform's own per-identity rate limiter (RATE_LIMIT_QUERY_PER_MINUTE, default
+        # 60/min) would otherwise dominate the measurement well before 200 requests, and
+        # round-robining across identities is a closer simulation of concurrent users than
+        # one client hammering a single key anyway.
+        env:
+          API_KEY_PEPPER: release-ci-pepper-not-for-production
+          AUDIT_HMAC_KEY: release-ci-audit-not-for-production
+        run: |
+          KEYS=""
+          for i in $(seq 1 10); do
+            KEY=$(docker compose exec -T api sh -c ". deploy/env-secrets.sh && python scripts/bootstrap_security.py --organization \"Load Test Org ${i}\" --email owner${i}@release.invalid" | python -c "import json,sys; print(json.load(sys.stdin)['api_key'])")
+            KEYS="${KEYS}${KEYS:+,}${KEY}"
+          done
+          python scripts/load_test.py --api-keys "${KEYS}" --endpoint /documents --requests 200 --concurrency 10 --output outputs/load_test/report.json
       - name: Backup and restore evidence
         run: |
           docker compose exec -T postgres createdb -U rag_owner -O rag_app rag_restore
@@ -97,6 +115,15 @@ jobs:
             cat docs/benchmarks/quality-gate-reference.json 2>/dev/null || echo '(not generated -- an earlier step failed before this file was written)'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish load-test report to the run summary
+        if: always()
+        run: |
+          {
+            echo '### Load-test report (this run)'
+            echo '```json'
+            cat outputs/load_test/report.json 2>/dev/null || echo '(not generated -- the load-test step did not complete)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -104,6 +131,7 @@ jobs:
           path: |
             outputs/releases/
             outputs/security/
+            outputs/load_test/
             docs/benchmarks/quality-gate-reference.json
           if-no-files-found: error
           retention-days: 90
