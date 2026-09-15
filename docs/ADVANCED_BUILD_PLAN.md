@@ -116,11 +116,24 @@ Exit gate: the container passes health checks, load targets, migration tests, an
 
 Duration: 1 week
 
-- Publish a live sanitized demo and OpenAPI documentation.
-- Record a short failure-to-fix walkthrough using the same benchmark before and after hybrid retrieval.
-- Commit the architecture diagram, threat model, benchmark methodology, experiment table, and load-test report.
-- Write two engineering case studies: retrieval improvement and RAG security testing.
-- Report only reproducible metrics generated from committed experiment manifests.
+- ✅ Commit the architecture diagram (`docs/ARCHITECTURE.md`), threat model (`docs/THREAT_MODEL.md`),
+  benchmark methodology (`docs/RERANKING_BENCHMARK.md`, `docs/CLAIM_LEVEL_GROUNDING.md`,
+  `docs/QUALITY_GATE_RELEASE.md`), experiment table (the 6.5.1–6.5.2 results table above, and
+  `docs/RERANKING_BENCHMARK.md`'s reference run record), and load-test report
+  (`scripts/load_test.py`, wired into `release-quality.yml`, report-only for now — no prior
+  baseline exists yet to set a defensible latency budget against).
+- ✅ Write two engineering case studies: `docs/case-studies/retrieval-improvement.md` and
+  `docs/case-studies/rag-security-testing.md`.
+- ✅ Report only reproducible metrics generated from committed experiment manifests — every number
+  in the items above traces to a retained CI artifact or a currently-committed doc, not a fresh
+  claim.
+- ⏳ Record a short failure-to-fix walkthrough using the same benchmark before and after hybrid
+  retrieval. Script written (`docs/DEMO_WALKTHROUGH_SCRIPT.md`); the actual recording needs a
+  human at a keyboard, not something this session can produce.
+- ⏳ Publish a live sanitized demo and OpenAPI documentation. Blocked on a hosting decision and
+  credentials — deliberately not guessed at. Owner will provide hosting target and access in a
+  later session; FastAPI already serves OpenAPI docs live at `/docs`/`/openapi.json` once deployed,
+  so this is a deploy-target problem, not a missing-artifact problem.
 
 ## Milestone 6.5 — Close the outstanding quality gates (attempted 2026-09-12)
 
