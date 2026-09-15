@@ -91,3 +91,54 @@ Rotate a secret by regenerating its file and restarting only the services that m
 `postgres_password` is deliberately scoped to `api` alone). API keys don't need coordinated
 rotation the way shared secrets do: `revoke_api_key` plus issuing a new one
 (`create_key_for_context`) is immediate and per-key, with no restart required.
+
+## Public demo deployment (Render)
+
+Everything above is the multi-tenant `PLATFORM_MODE=postgres` reference stack
+(`docker-compose.yml`). Milestone 7's public sanitized demo target is deliberately different and
+much simpler: the `legacy` profile — one container, local FAISS/SQLite, no Postgres/Redis/
+MinIO/Keycloak — served via `render.yaml` at the repo root.
+
+**Why legacy mode for the public demo, not the full production stack**: the production profile
+needs OIDC login (Keycloak) before anyone can do anything, which is the wrong first impression
+for a portfolio demo meant to be tried in one click. Legacy mode with `SECURITY_MODE=demo` gives
+anonymous visitors a `viewer`-role context (`backend/security_models.py`'s `ROLE_SCOPES`) —
+`query` and `documents:read` only, no upload/write access — automatically, with no login, and
+query volume is already rate-limited for anonymous callers
+(`backend/rate_limit.py::MemoryDemoRateLimiter`, 60 requests/minute shared across all anonymous
+visitors by default). Nothing new had to be built for this; the safety rails already existed for
+exactly this use case.
+
+### Deploy steps
+
+1. In the Render dashboard, create a new Blueprint from this repository (Render auto-detects
+   `render.yaml` at the repo root). Since GitHub is already connected to the Render account, this
+   is a few clicks — no manual service configuration needed.
+2. Render builds the existing `Dockerfile` with `PREFETCH_MODELS=true` (bakes the embedding,
+   reranker, and grounding models into the image at build time, so the first visitor after a
+   deploy doesn't hit a slow cold-load) and starts it on the `standard` plan. **Plan sizing is a
+   recommendation based on the stack's known components (PyTorch, sentence-transformers,
+   faiss-cpu, ONNX runtime), not something verified against real Render memory limits from this
+   session** — watch the first deploy's memory usage in the Render dashboard and size down (or up)
+   from there.
+3. Add `GEMINI_API_KEY` as a secret environment variable in the Render dashboard after the first
+   deploy (`render.yaml` deliberately leaves it as `sync: false` — never commit a real key).
+   Optional: without it, claim generation falls back to the deterministic extractive mode
+   (`docs/CLAIM_LEVEL_GROUNDING.md`) and the demo still fully works.
+4. Once live, open the app and use **Ingest & Index** to load the bundled public demo corpus
+   (`data/public_demo/`) and build the index once. The `render.yaml` disk mount at `/app/index`
+   persists that index across future deploys and restarts — later visitors get a ready-to-query
+   demo immediately, they don't rebuild it themselves (anonymous `viewer` role can't anyway; it
+   lacks `documents:write`).
+5. Link the live URL from `README.md`'s demo section, and from
+   `docs/DEMO_WALKTHROUGH_SCRIPT.md` once that's recorded against the live instance.
+
+### What isn't verified
+
+This session has no Render account access, so none of the above has been confirmed against a
+real Render deploy — it's reasoned from `render.yaml`'s documented schema, this repo's existing
+`Dockerfile`/`deploy/start-service.sh`, and the legacy-mode code paths already read in
+`app/security_ui.py` and `api.py`. Watch the real build/deploy logs in the Render dashboard; if
+something fails, the failure and its logs are the next real input to fix from — same
+build-fix-reverify discipline as everything else in this document, just running on Render's
+infrastructure instead of GitHub Actions.
