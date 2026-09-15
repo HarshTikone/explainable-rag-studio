@@ -166,7 +166,7 @@ Each fix was validated by re-dispatching the real workflow against GitHub's runn
 |---|---|
 | Runtime | **promoted** — Python 3.11, Docker build, Streamlit health, API smoke, and dependency checks all passed |
 | Retrieval | **promoted** — `hybrid_rerank` retained; Recall@5 +0.0345, MRR +0.0218, nDCG@5 +0.0356, all latency and citation gates passed |
-| Grounding | **rejected** — `strict_safe_abstention`; macro F1 0.668 and contradiction recall 0.8125 still below their bars, and a new answer-accuracy regression (−0.214) was measured against the held-out set; verification latency itself now passes (294 ms, well under budget) |
+| Grounding | **rejected** — `strict_safe_abstention`; macro F1 0.668 and contradiction recall 0.8125 still below their bars; verification latency itself now passes (294 ms, well under budget). The −0.214 answer-accuracy regression against held-out is not a new finding here — it closely matches the −0.2333 regression `docs/CLAIM_LEVEL_GROUNDING.md` already documented for the 2026-09-01 retained release, so it's a pre-existing, unresolved gap this run simply re-measured, not something this run introduced. |
 | Security | **promoted** |
 | Overall | **rejected** — blocked solely by the grounding decision |
 
