@@ -94,34 +94,6 @@ jobs:
         run: python scripts/run_release_validation.py --docker-passed --streamlit-passed --api-passed --dependencies-passed
       - name: Validate retained artifact
         run: python scripts/run_release_validation.py --validate "$(find outputs/releases -mindepth 1 -maxdepth 1 -type d | sort | tail -1)"
-      - name: TEMP diagnostic - calibration candidate grid
-        # Throwaway. Two guesses at closing the grounding gate (deterministic-guard vocabulary,
-        # a larger verifier model) both measured as real negative results. Before guessing a
-        # third time, look at real data: run_release_validation.py already writes the full
-        # 210-candidate calibration grid (backend/grounding_eval.py's calibrate_grounding_policy,
-        # every premise-strategy/threshold combination, eligible or not) to
-        # outputs/releases/<id>/calibration_report.json on every run, but only the single
-        # max-macro_f1-among-eligible candidate is ever looked at. Print the top eligible
-        # candidates ranked by contradiction_recall instead of macro_f1, calibration-only (not
-        # touching held-out) -- if there's a calibration-eligible candidate with meaningfully
-        # higher contradiction_recall margin that wasn't selected (because it had merely-good
-        # rather than best macro_f1), that's a real, evidence-based lever: change the selection
-        # criterion, not the model or the guards. If all eligible candidates cluster right at
-        # the 0.85 floor, that closes off this avenue too and says something structural is
-        # needed instead. Remove this step once analyzed.
-        if: always()
-        run: |
-          python -c "
-          import json, glob
-          release_dir = sorted(glob.glob('outputs/releases/*'))[-1]
-          report = json.load(open(f'{release_dir}/calibration_report.json'))
-          print(f\"candidate_count={report['candidate_count']}\")
-          candidates = report['top_candidates']
-          print(f'{\"eligible\":8} {\"macro_f1\":9} {\"precision\":10} {\"contra_recall\":14} {\"premise\":18} {\"ent_thr\":8} {\"contra_thr\":10} {\"rel_thr\":8}')
-          for row in sorted(candidates, key=lambda r: -r['contradiction_recall']):
-              policy = row['policy']
-              print(f\"{str(row['eligible']):8} {row['macro_f1']:.4f}   {row['supported_precision']:.4f}     {row['contradiction_recall']:.4f}        {policy['premise_strategy']:18} {policy['entailment_threshold']:<8} {policy['contradiction_threshold']:<10} {policy['conflict_relevance_threshold']:<8}\"[:140])
-          "
       - name: Retained security decision
         run: python scripts/run_security_validation.py --dependency-passed --static-passed --api-passed --streamlit-passed --docker-passed --platform-passed --backup-restore-passed
       - name: Require promoted decisions
