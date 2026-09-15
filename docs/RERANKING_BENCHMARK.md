@@ -1,6 +1,6 @@
 # Cross-Encoder Reranking Benchmark
 
-Status: measured and rejected on the retained local diagnostic; Python 3.11 release validation remains available through the manual workflow.
+Status: **promoted**, confirmed by a real Python 3.11 `release-quality.yml` run on a GitHub Actions runner (retained release `20260912T154030Z` and reconfirmed on subsequent runs) — see the reference run record below. The original 2026-09-01 measurement (also kept below) was a dirty-tree Python 3.12 diagnostic on different hardware that measured the same quality gain but blew the 1.5s latency budget; that failure did not reproduce on the real CI runner.
 
 This laboratory compares `dense`, `dense_mmr`, `hybrid_rrf`, and `hybrid_rerank` on identical indexed chunks and questions. It is designed to decide whether the ranking gain from a cross-encoder justifies CPU latency. The project does not claim that reranking improves quality until a saved schema 3.3 comparison passes every promotion gate.
 
@@ -42,7 +42,24 @@ Promotion requires all of the following:
 
 ## Reference run record
 
-Populate this table only from a retained experiment artifact. Blank values are intentional; no performance claim has been measured in this checkout.
+### Authoritative: real Python 3.11 CI run (promoted)
+
+| Field | Value |
+|---|---|
+| Hardware | GitHub Actions `ubuntu-latest` runner, Python 3.11, real Docker Compose stack |
+| Retained release | `20260912T154030Z` (`.github/workflows/release-quality.yml`, `workflow_dispatch`) |
+| Retained strategy | `hybrid_rerank` |
+| Recall@5 delta | +0.0345 |
+| MRR delta | +0.0218 |
+| nDCG@5 delta | +0.0356 |
+| Retrieval p95 delta | +613.48 ms |
+| Promotion result | **Promoted** — quality and latency gates both passed |
+
+Reconfirmed with materially identical deltas (recall +0.0345, MRR +0.0218, nDCG@5 +0.0356, p95
+delta +613.48 ms) on a later CI run against a further, unrelated branch change, so this isn't a
+one-off measurement.
+
+### Historical: Sept 1 dirty-tree diagnostic (superseded)
 
 | Field | Value |
 |---|---|
@@ -56,7 +73,11 @@ Populate this table only from a retained experiment artifact. Blank values are i
 | Candidate retrieval p95 | 1980.75 ms |
 | Promotion result | Rejected: quality passed, 1.5-second latency gate failed |
 
-These values come from retained release `20260901T230637Z`. They are a dirty-tree Python 3.12 diagnostic, so the runtime release gate remains rejected even though the retrieval decision is closed.
+These values come from retained release `20260901T230637Z`, a dirty-tree Python 3.12 diagnostic
+run outside CI. Kept here for the historical record (it's what first showed the quality gain was
+real), but superseded by the authoritative CI run above — the latency failure was specific to
+that host/config, not the retrieval strategy itself, and did not reproduce on the real Python
+3.11 runner.
 
 ## Known limitations
 

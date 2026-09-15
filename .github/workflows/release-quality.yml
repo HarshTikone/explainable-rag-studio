@@ -65,6 +65,24 @@ jobs:
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/reviews
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/documents
           curl --fail -H "Authorization: Bearer ${API_KEY}" http://127.0.0.1:8000/audit/verify
+          echo "API_KEY=${API_KEY}" >> "$GITHUB_ENV"
+      - name: Load test
+        # Milestone 6's exit gate calls for load tests, and Milestone 7 wants a committed
+        # load-test report as portfolio evidence -- neither existed before this. Mints 9
+        # additional API keys under the org bootstrapped in "FastAPI smoke" (POST /api-keys,
+        # not another bootstrap_security.py call -- bootstrap() is a one-time "first owner"
+        # operation and already ran once above; calling it again raises "A first owner
+        # already exists"). The platform's own per-identity rate limiter
+        # (RATE_LIMIT_QUERY_PER_MINUTE, default 60/min) would otherwise dominate the
+        # measurement well before 200 requests, and round-robining across 10 distinct keys
+        # is a closer simulation of concurrent users than one client hammering a single key.
+        run: |
+          KEYS="${API_KEY}"
+          for i in $(seq 1 9); do
+            KEY=$(curl -sS --fail -X POST -H "Authorization: Bearer ${API_KEY}" -H "Content-Type: application/json" -d '{"scopes":["documents:read"]}' http://127.0.0.1:8000/api-keys | python -c "import json,sys; print(json.load(sys.stdin)['api_key'])")
+            KEYS="${KEYS},${KEY}"
+          done
+          python scripts/load_test.py --api-keys "${KEYS}" --endpoint /documents --requests 200 --concurrency 10 --output outputs/load_test/report.json
       - name: Backup and restore evidence
         run: |
           docker compose exec -T postgres createdb -U rag_owner -O rag_app rag_restore
@@ -82,6 +100,30 @@ jobs:
         run: |
           python -c "import json; q=json.load(open('docs/benchmarks/quality-gate-reference.json')); assert q['quality_gate']['overall']['promoted'], q['quality_gate']"
           python -c "import json; q=json.load(open('outputs/security/security_gate.json')); assert q['decision']=='promoted', q['failure_reasons']"
+      - name: Publish quality-gate reference to the run summary
+        # docs/benchmarks/quality-gate-reference.json is regenerated fresh in every run
+        # but the copy tracked in git only ever gets updated by a human/agent copying
+        # numbers out of CI after the fact, so it goes stale between updates. Printing
+        # it into the job summary (rendered directly on the Actions run page) means
+        # anyone can grab the current numbers without downloading the artifact zip --
+        # no repo write access needed, unlike committing it back automatically would be.
+        if: always()
+        run: |
+          {
+            echo '### Quality-gate reference (this run)'
+            echo '```json'
+            cat docs/benchmarks/quality-gate-reference.json 2>/dev/null || echo '(not generated -- an earlier step failed before this file was written)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish load-test report to the run summary
+        if: always()
+        run: |
+          {
+            echo '### Load-test report (this run)'
+            echo '```json'
+            cat outputs/load_test/report.json 2>/dev/null || echo '(not generated -- the load-test step did not complete)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -89,6 +131,7 @@ jobs:
           path: |
             outputs/releases/
             outputs/security/
+            outputs/load_test/
             docs/benchmarks/quality-gate-reference.json
           if-no-files-found: error
           retention-days: 90

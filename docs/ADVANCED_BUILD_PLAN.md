@@ -104,23 +104,36 @@ Exit gate: automated tests prove that no query can retrieve or cite another tena
 
 Duration: 2 weeks
 
-- Replace local-only metadata with PostgreSQL and pgvector behind a storage interface; keep FAISS for the lightweight local profile.
-- Add async ingestion workers, idempotency keys, streaming answers, timeouts, retries, rate limits, authentication, and API versioning.
-- Instrument parsing, embedding, retrieval, fusion, reranking, generation, and citation verification with OpenTelemetry.
-- Track p50/p95/p99 latency, token usage, cost, cache hit rate, errors, and quality feedback.
-- Add database migrations, backups, restore documentation, load tests, and deployment runbooks.
+- ✅ Replace local-only metadata with PostgreSQL and pgvector behind a storage interface; keep FAISS for the lightweight local profile.
+- ✅ Add async ingestion workers, idempotency keys, streaming answers, timeouts, retries, rate limits, authentication, and API versioning.
+- ❌ Instrument parsing, embedding, retrieval, fusion, reranking, generation, and citation verification with OpenTelemetry. Not started — no `opentelemetry-*` dependency exists anywhere in this repo. What does exist is a homegrown, non-OTel latency-tracking system spread across `backend/eval.py`, `backend/experiments.py`, `backend/grounding.py`, `backend/retriever.py`, and `backend/qa.py` (p50/p95/p99 per stage, surfaced on the Streamlit "Latency Dashboard" page) — real, but not what this bullet asked for, and it doesn't cover the rest of the next bullet.
+- ⚠️ Track p50/p95/p99 latency, token usage, cost, cache hit rate, errors, and quality feedback. Latency: done (see above, homegrown). Token usage, cost, and cache hit rate: not tracked anywhere in the codebase. Quality feedback: covered separately by the grounding-review reviewer-label pipeline (`docs/CLAIM_LEVEL_GROUNDING.md`).
+- ✅ Add database migrations (Alembic, `deploy/postgres/`), backups (`scripts/platform_backup.py`/`restore_validate.py`, exercised in CI), restore documentation, load tests (`scripts/load_test.py`, new this session), and deployment runbooks (`docs/DEPLOYMENT_RUNBOOK.md`, new this session).
 
-Exit gate: the container passes health checks, load targets, migration tests, and a documented recovery exercise.
+Exit gate: the container passes health checks (✅, CI-verified), load targets (⚠️ load test now exists and runs in CI, but is report-only — no promotion threshold has been set, since there's no prior baseline to set a defensible one against), migration tests (✅), and a documented recovery exercise (✅, `docs/DEPLOYMENT_RUNBOOK.md`, backed by real repeated CI verification, not just a written procedure). **Real OpenTelemetry instrumentation and token/cost/cache-hit tracking remain genuinely unimplemented** — this is the honest state, not a checklist formality.
 
 ## Milestone 7 — Portfolio evidence
 
 Duration: 1 week
 
-- Publish a live sanitized demo and OpenAPI documentation.
-- Record a short failure-to-fix walkthrough using the same benchmark before and after hybrid retrieval.
-- Commit the architecture diagram, threat model, benchmark methodology, experiment table, and load-test report.
-- Write two engineering case studies: retrieval improvement and RAG security testing.
-- Report only reproducible metrics generated from committed experiment manifests.
+- ✅ Commit the architecture diagram (`docs/ARCHITECTURE.md`), threat model (`docs/THREAT_MODEL.md`),
+  benchmark methodology (`docs/RERANKING_BENCHMARK.md`, `docs/CLAIM_LEVEL_GROUNDING.md`,
+  `docs/QUALITY_GATE_RELEASE.md`), experiment table (the 6.5.1–6.5.2 results table above, and
+  `docs/RERANKING_BENCHMARK.md`'s reference run record), and load-test report
+  (`scripts/load_test.py`, wired into `release-quality.yml`, report-only for now — no prior
+  baseline exists yet to set a defensible latency budget against).
+- ✅ Write two engineering case studies: `docs/case-studies/retrieval-improvement.md` and
+  `docs/case-studies/rag-security-testing.md`.
+- ✅ Report only reproducible metrics generated from committed experiment manifests — every number
+  in the items above traces to a retained CI artifact or a currently-committed doc, not a fresh
+  claim.
+- ⏳ Record a short failure-to-fix walkthrough using the same benchmark before and after hybrid
+  retrieval. Script written (`docs/DEMO_WALKTHROUGH_SCRIPT.md`); the actual recording needs a
+  human at a keyboard, not something this session can produce.
+- ⏳ Publish a live sanitized demo and OpenAPI documentation. Blocked on a hosting decision and
+  credentials — deliberately not guessed at. Owner will provide hosting target and access in a
+  later session; FastAPI already serves OpenAPI docs live at `/docs`/`/openapi.json` once deployed,
+  so this is a deploy-target problem, not a missing-artifact problem.
 
 ## Milestone 6.5 — Close the outstanding quality gates (attempted 2026-09-12)
 
@@ -166,7 +179,7 @@ Each fix was validated by re-dispatching the real workflow against GitHub's runn
 |---|---|
 | Runtime | **promoted** — Python 3.11, Docker build, Streamlit health, API smoke, and dependency checks all passed |
 | Retrieval | **promoted** — `hybrid_rerank` retained; Recall@5 +0.0345, MRR +0.0218, nDCG@5 +0.0356, all latency and citation gates passed |
-| Grounding | **rejected** — `strict_safe_abstention`; macro F1 0.668 and contradiction recall 0.8125 still below their bars, and a new answer-accuracy regression (−0.214) was measured against the held-out set; verification latency itself now passes (294 ms, well under budget) |
+| Grounding | **rejected** — `strict_safe_abstention`; macro F1 0.668 and contradiction recall 0.8125 still below their bars; verification latency itself now passes (294 ms, well under budget). The −0.214 answer-accuracy regression against held-out is not a new finding here — it closely matches the −0.2333 regression `docs/CLAIM_LEVEL_GROUNDING.md` already documented for the 2026-09-01 retained release, so it's a pre-existing, unresolved gap this run simply re-measured, not something this run introduced. |
 | Security | **promoted** |
 | Overall | **rejected** — blocked solely by the grounding decision |
 
