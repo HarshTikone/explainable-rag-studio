@@ -183,7 +183,42 @@ Each fix was validated by re-dispatching the real workflow against GitHub's runn
 | Security | **promoted** |
 | Overall | **rejected** — blocked solely by the grounding decision |
 
-This closes Milestone 6.5.1 (the runtime gate has now genuinely run and passed) and, incidentally, Milestone 6.5.2 as originally scoped (the reranker latency and quality gates both pass on this run) — no config or threshold was changed to get there; `SETTINGS.rerank_candidates` is untouched at 30. What remains of Milestone 6.5.3 is a real, separate ML problem, not an infrastructure one: recalibrating the grounding policy's premise strategy and thresholds via `scripts/calibrate_grounding.py --allow-small-fallback` against the 48 calibration cases only, with particular attention to contradiction recall (the weaker of the two failing metrics) and the newly-visible answer-accuracy regression.
+This closes Milestone 6.5.1 (the runtime gate has now genuinely run and passed) and, incidentally, Milestone 6.5.2 as originally scoped (the reranker latency and quality gates both pass on this run) — no config or threshold was changed to get there; `SETTINGS.rerank_candidates` is untouched at 30. What remains of Milestone 6.5.3 is a real, separate ML problem, not an infrastructure one.
+
+### 6.5.3 — Three attempts at the grounding gate (2026-09-15)
+
+Three real, CI-confirmed attempts at closing the grounding gap, in order:
+
+1. **Deterministic-guard vocabulary widening** (`backend/grounding.py`) — broadened `NEGATIONS`,
+   obsolescence synonyms, and antonym `state_pairs` based on calibration-split phrasing patterns.
+   **Result: zero effect.** `macro_f1`/`contradiction_recall` came back bit-identical to the
+   pre-change run — none of the widened vocabulary matched anything in the held-out cases.
+2. **Larger verifier model** (`cross-encoder/nli-deberta-v3-small` promoted to primary, replacing
+   `xsmall`) — on the theory that raw discrimination capacity, not missing patterns, was the
+   cap. **Result: worse, not better.** Calibration itself failed outright (`RuntimeError: No
+   grounding policy met calibration safety constraints` — zero eligible candidates across the
+   full 210-candidate grid, where `xsmall` had always found at least one). Confirmed via a
+   diagnostic that both models report identical `id2label` mappings, ruling out a label-mismatch
+   bug. Reverted back to `xsmall`.
+3. **Nested cross-validation for candidate selection** (`backend/grounding_eval.py`) — a
+   diagnostic first showed *why* the first two attempts failed: the top 20 of 210 calibration
+   candidates are exactly tied on pooled metrics (macro F1 0.8025, contradiction recall 0.9375),
+   so 48 calibration cases can't discriminate between them and the existing tie-break (lowest
+   latency, then policy ID) has zero connection to generalization. Added `_stratified_folds()`
+   (4 label-balanced, deterministic folds within the 48 calibration cases only) and changed
+   selection among eligible candidates to prefer `mean_fold_macro_f1 − stdev_fold_macro_f1`
+   instead of raw pooled macro F1. Eligibility itself, and held-out, both untouched.
+   **Result: real, measured improvement.** Contradiction recall moved **0.8125 → 0.875**,
+   clearing its 0.85 bar for the first time this project's history. Macro F1 improved
+   **0.668 → 0.688**, still below 0.85. Retrieval/runtime gates unaffected.
+
+Grounding remains **rejected overall** — macro F1 still has real distance to close, and the
+answer-accuracy regression (now −0.25, essentially unchanged from the −0.21 to −0.23 range
+documented since the 2026-09-01 retained release) is a separate, larger, still-unaddressed
+problem that none of the three attempts above targeted. The pattern across all three: guessing
+at the model or the guard rules was a dead end; a methodology change that directly targeted a
+diagnosed problem (calibration saturation) produced the only real movement. The same lesson
+likely applies to the accuracy regression — it needs its own diagnosis, not another guess.
 
 ## Recommended implementation order
 
