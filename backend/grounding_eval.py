@@ -168,7 +168,7 @@ def calibrate_grounding_policy(
         premise_version = "atomic-sentence-v1" if strategy == "atomic_sentence" else "context-envelope-v1"
         scoring_policy = replace(base, premise_strategy=strategy, premise_version=premise_version)
         score_map, latency = _score_case_pairs(cases, by_id, verifier, scoring_policy)
-        for entailment in (0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85):
+        for entailment in (0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85):
             for contradiction in (0.65, 0.70, 0.75, 0.80, 0.85):
                 for relevance in (0.20, 0.30, 0.40):
                     policy = replace(

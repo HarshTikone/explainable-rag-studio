@@ -95,16 +95,20 @@ jobs:
       - name: Validate retained artifact
         run: python scripts/run_release_validation.py --validate "$(find outputs/releases -mindepth 1 -maxdepth 1 -type d | sort | tail -1)"
       - name: TEMP diagnostic - held-out per-label breakdown
-        # Throwaway. macro_f1 (0.688) and answer_accuracy_regression (-0.25) are still both
-        # rejected despite contradiction_recall now clearing its bar. The gate's compact summary
-        # only ever surfaces supported_precision and contradiction_recall -- never the other
-        # label metrics, so the actual bottleneck (most likely supported recall, given precision
-        # sits at a suspicious exact 1.0 on every run) has never been directly measured. Prints
-        # only AGGREGATE per-label precision/recall/f1/support and the confusion matrix counts
-        # from outputs/releases/<id>/heldout_claim_report.json -- deliberately NOT the per-case
-        # "rows" (individual held-out claim text/verdicts), since the policy is already locked
-        # and fingerprinted before this file is written, but reading held-out case content
-        # itself is a different, more sensitive thing this step avoids. Remove once analyzed.
+        # Throwaway. The first run of this diagnostic found the real bottleneck:
+        # category_accuracy showed exact_support at a perfect 1.0 but paraphrase_support at a
+        # flat 0.0 (0/8) -- the verifier recognizes near-verbatim supported claims fine but
+        # entirely fails on paraphrased ones. All 20 top calibration candidates spanned
+        # entailment_threshold 0.55-0.85 with byte-identical outcomes, meaning calibration's own
+        # paraphrase cases don't exercise that boundary -- held-out paraphrase entailment
+        # confidence is likely falling below the entire tested range. Widened the grid down to
+        # 0.35 (see backend/grounding_eval.py) to test that directly. Keeping this step for one
+        # more run to confirm paraphrase_support moves, then removing it. Prints only AGGREGATE
+        # per-label precision/recall/f1/support and the confusion matrix from
+        # outputs/releases/<id>/heldout_claim_report.json -- deliberately not the per-case "rows"
+        # (individual held-out claim text/verdicts); the policy is already locked and
+        # fingerprinted before this file is written, but reading held-out case content itself is
+        # a different, more sensitive thing this step avoids on purpose.
         if: always()
         run: |
           python -c "
