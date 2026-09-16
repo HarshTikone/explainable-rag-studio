@@ -114,22 +114,19 @@ exactly this use case.
 1. In the Render dashboard, create a new Blueprint from this repository (Render auto-detects
    `render.yaml` at the repo root). Since GitHub is already connected to the Render account, this
    is a few clicks — no manual service configuration needed.
-2. Render builds the existing `Dockerfile` with `PREFETCH_MODELS=true` (bakes the embedding,
-   reranker, and grounding models into the image at build time, so the first visitor after a
-   deploy doesn't hit a slow cold-load) and starts it on the `standard` plan. **Plan sizing is a
-   recommendation based on the stack's known components (PyTorch, sentence-transformers,
-   faiss-cpu, ONNX runtime), not something verified against real Render memory limits from this
-   session** — watch the first deploy's memory usage in the Render dashboard and size down (or up)
-   from there.
+2. Render builds the existing `Dockerfile` with `PREFETCH_MODELS=true` (bakes the reranker and
+   grounding models into the image at build time, so the first visitor after a deploy doesn't hit
+   a slow cold-load) and starts it on the `free` plan. **The free plan is a cost-free deployment
+   target, not a claim that the full local-model stack fits comfortably within its memory limit**
+   — watch the first deploy's memory usage and treat an out-of-memory result as a sizing signal.
 3. Add `GEMINI_API_KEY` as a secret environment variable in the Render dashboard after the first
    deploy (`render.yaml` deliberately leaves it as `sync: false` — never commit a real key).
    Optional: without it, claim generation falls back to the deterministic extractive mode
    (`docs/CLAIM_LEVEL_GROUNDING.md`) and the demo still fully works.
-4. Once live, open the app and use **Ingest & Index** to load the bundled public demo corpus
-   (`data/public_demo/`) and build the index once. The `render.yaml` disk mount at `/app/index`
-   persists that index across future deploys and restarts — later visitors get a ready-to-query
-   demo immediately, they don't rebuild it themselves (anonymous `viewer` role can't anyway; it
-   lacks `documents:write`).
+4. The free Blueprint deliberately has no persistent disk, so local index data is ephemeral.
+   Build the bundled public demo index into the image or load it with a temporary authenticated
+   operator key before public testing; expect to rebuild it after any deployment that replaces the
+   instance filesystem. Anonymous `viewer` access cannot ingest documents.
 5. Link the live URL from `README.md`'s demo section, and from
    `docs/DEMO_WALKTHROUGH_SCRIPT.md` once that's recorded against the live instance.
 

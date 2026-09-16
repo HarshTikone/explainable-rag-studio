@@ -4,7 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: standard
+    plan: free
     healthCheckPath: /_stcore/health
     envVars:
       # Render exposes service environment variables to Docker builds as build
@@ -29,14 +29,3 @@ services:
       # after the blueprint deploys; never commit a real key here.
       - key: GEMINI_API_KEY
         sync: false
-    # Persists the FAISS/BM25 index across deploys and restarts, so visitors
-    # get a ready-to-query demo rather than an empty index every time the
-    # container restarts. backend/config.py's index_dir/outputs_dir are fixed
-    # relative paths (not independently env-var-configurable), so only the
-    # index -- the highest-value thing to keep -- is persisted here; outputs/
-    # (reviews.db, security.db) stays ephemeral, which is fine for an
-    # anonymous, read-only public demo with no persistent accounts.
-    disk:
-      name: demo-index
-      mountPath: /app/index
-      sizeGB: 1
