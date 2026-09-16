@@ -1,10 +1,10 @@
 {
   "schema_version": "1.1",
-  "release_id": "20260916T144051Z",
-  "source_tree_fingerprint": "ab1dbac005e1b966b5825eb550af1755ed76490e65d40b2f7c65a0d88255d126",
+  "release_id": "20260916T214650Z",
+  "source_tree_fingerprint": "9abd139255d53008ba16c675003d24ad8172741be0d5beae218508b22371e01f",
   "quality_gate": {
     "schema_version": "1.1",
-    "release_id": "20260916T144051Z",
+    "release_id": "20260916T214650Z",
     "retrieval": {
       "closed": true,
       "promoted": true,
@@ -16,7 +16,7 @@
         "recall_delta": -0.005747126436781658,
         "mrr_delta": 0.037931034482758585,
         "ndcg_delta": 0.034932991263896485,
-        "retrieval_p95_delta_ms": 601.2269344999481,
+        "retrieval_p95_delta_ms": 398.59253824999996,
         "quality_ok": true,
         "citation_ok": true,
         "latency_ok": true
@@ -25,7 +25,7 @@
     "grounding": {
       "closed": true,
       "promoted": true,
-      "retained_policy": "gpol_0113df15e705e728",
+      "retained_policy": "gpol_0061e94c21bf7f5f",
       "gates": {
         "passed": true,
         "gates": {
@@ -46,13 +46,13 @@
         },
         "measured": {
           "supported_precision": 1.0,
-          "macro_f1": 0.885113685113685,
+          "macro_f1": 0.9008511617207269,
           "contradiction_recall": 1.0,
           "answer_coverage": 0.9310344827586207,
           "unsupported_exposed": 0,
           "answer_accuracy_delta": 0.0,
           "abstention_accuracy_delta": 0.0,
-          "verification_p95_ms": 846.2737295000125
+          "verification_p95_ms": 400.3960157500046
         }
       }
     },
@@ -73,7 +73,7 @@
     }
   },
   "grounding_heldout": {
-    "macro_f1": 0.885113685113685,
+    "macro_f1": 0.9008511617207269,
     "supported_precision": 1.0,
     "contradiction_recall": 1.0
   },
@@ -82,13 +82,13 @@
       "recall_at_5": 0.9770114942528736,
       "mrr": 0.9141762452107279,
       "ndcg_at_5": 0.9149786654747523,
-      "retrieval_p95_ms": 17.303925499987827
+      "retrieval_p95_ms": 11.868577999990748
     },
     "hybrid_rerank": {
       "recall_at_5": 0.9712643678160919,
       "mrr": 0.9521072796934865,
       "ndcg_at_5": 0.9499116567386487,
-      "retrieval_p95_ms": 618.530859999936
+      "retrieval_p95_ms": 410.4611162499907
     }
   },
   "strict_qa": {
@@ -99,6 +99,6 @@
     "answer_coverage": 0.9310344827586207,
     "citation_validity": 1.0,
     "claim_citation_coverage": 1.0,
-    "verification_p95_ms": 846.2737295000125
+    "verification_p95_ms": 400.3960157500046
   }
 }
