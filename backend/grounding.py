@@ -20,7 +20,7 @@ from .grounding_models import (
     StructuredDraft,
 )
 from .grounding_policy import GroundingPolicy, default_grounding_policy
-from .retriever import RetrievalResult
+from .retriever import RetrievalResult, tokenize_for_bm25, tokenize_query_for_bm25
 
 
 class VerifierUnavailableError(RuntimeError):
@@ -32,6 +32,18 @@ class NliVerifier(Protocol):
     model_revision: str
 
     def score(self, pairs: Sequence[Tuple[str, str]]) -> List[Dict[str, float]]: ...
+
+
+class DeterministicOnlyVerifier:
+    """Skip model loading while retaining exact-evidence and conflict guards."""
+
+    model_name = "deterministic-exact-evidence"
+    model_revision = "1"
+
+    def score(self, pairs: Sequence[Tuple[str, str]]) -> List[Dict[str, float]]:
+        if not pairs:
+            return []
+        raise VerifierUnavailableError("Semantic verification is disabled in low-memory demo mode.")
 
 
 class CrossEncoderNliVerifier:
@@ -146,9 +158,28 @@ def _legacy_items(retrieved_items) -> List[Tuple[float, Dict[str, Any]]]:
     return retrieved_items.as_legacy() if isinstance(retrieved_items, RetrievalResult) else list(retrieved_items)
 
 
-def build_extractive_draft(retrieved_items, max_claims: int = 3) -> StructuredDraft:
+def build_extractive_draft(retrieved_items, max_claims: int = 3, question: str = "") -> StructuredDraft:
     claims: List[DraftClaim] = []
-    for _, item in _legacy_items(retrieved_items):
+    legacy = _legacy_items(retrieved_items)
+    if question:
+        query_tokens = set(tokenize_query_for_bm25(question))
+        candidates = []
+        for item_rank, (_, item) in enumerate(legacy):
+            clean_text = " ".join(str(item.get("text", "")).split())
+            for sentence_rank, sentence in enumerate(re.split(r"(?<=[.!?])\s+", clean_text)):
+                sentence = sentence.strip()
+                if len(sentence) < 12:
+                    continue
+                overlap = len(query_tokens & set(tokenize_for_bm25(sentence)))
+                candidates.append((overlap, item_rank, sentence_rank, sentence, item))
+        candidates.sort(key=lambda row: (-row[0], row[1], row[2]))
+        for _, _, _, sentence, item in candidates[:max_claims]:
+            claims.append(DraftClaim(
+                text=sentence[:500], cited_chunk_ids=[item["chunk_id"]], provenance="extractive"
+            ))
+        return StructuredDraft(answerable=bool(claims), claims=claims)
+
+    for _, item in legacy:
         clean_text = " ".join(str(item.get("text", "")).split())
         for sentence in re.split(r"(?<=[.!?])\s+", clean_text):
             sentence = sentence.strip()

@@ -37,6 +37,7 @@ def answer_with_optional_llm(
     review_registry: ReviewRegistry | None = None,
     persist_review: bool = True,
     grounding_policy: GroundingPolicy | None = None,
+    extractive_max_claims: int = 3,
 ) -> Dict[str, Any]:
     """
     Returns:
@@ -52,14 +53,14 @@ def answer_with_optional_llm(
     context = build_context(retrieved)
 
     if not legacy:
-        draft = build_extractive_draft([])
+        draft = build_extractive_draft([], max_claims=extractive_max_claims, question=question)
     elif use_gemini and gemini_client is not None:
         try:
             draft = generate_structured_draft(question, retrieved_items, gemini_client, gemini_model)
         except Exception:
-            draft = build_extractive_draft(retrieved_items)
+            draft = build_extractive_draft(retrieved_items, max_claims=extractive_max_claims, question=question)
     else:
-        draft = build_extractive_draft(retrieved_items)
+        draft = build_extractive_draft(retrieved_items, max_claims=extractive_max_claims, question=question)
     claim_generation_ms = (time.perf_counter() - generation_started) * 1000
 
     verification = verify_claims(draft, retrieved_items, verifier=verifier, policy=grounding_policy).result

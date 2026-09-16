@@ -127,6 +127,19 @@ def test_offline_qa_returns_only_verified_extractive_claims(tmp_path):
     assert output["citations"][0]["verification_score"] == 1.0
 
 
+def test_question_aware_extractive_answer_selects_the_relevant_sentence():
+    retrieved = [hit(
+        "c1",
+        "Aegis Compliance Current Matrix. Audit events are retained for 400 days. Invoice evidence lasts seven years.",
+    )]
+    output = answer_with_optional_llm(
+        "What is the audit log retention period?", retrieved, False,
+        verifier=BrokenVerifier(), persist_review=False, extractive_max_claims=1,
+    )
+    assert "400 days" in output["answer"]
+    assert "seven years" not in output["answer"]
+
+
 class FakeGeminiModels:
     def __init__(self):
         self.calls = 0

@@ -8,7 +8,7 @@ from .config import SETTINGS
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     top_k: int = Field(default=SETTINGS.top_k, ge=1, le=50)
-    retrieval_strategy: Literal["dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank"] = "dense_mmr"
+    retrieval_strategy: Literal["lexical", "dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank"] = "dense_mmr"
     rerank_candidates: int | None = Field(default=None, ge=1, le=100)
 
 

@@ -14,9 +14,22 @@ from .config import SETTINGS
 from .reranker import Reranker, get_default_reranker
 from .security_models import PUBLIC_ORGANIZATION_ID, RetrievalScope, SecurityBoundaryError
 
-RetrievalStrategy = Literal["dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank"]
-VALID_STRATEGIES = ("dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank")
+RetrievalStrategy = Literal["lexical", "dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank"]
+VALID_STRATEGIES = ("lexical", "dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank")
 TOKEN_PATTERN = re.compile(r"[^\W_]+(?:[-.][^\W_]+)*", flags=re.UNICODE)
+BM25_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "in", "is", "it",
+    "of", "on", "or", "that", "the", "this", "to", "was", "were", "what", "which", "with",
+}
+BM25_QUERY_ALIASES = {
+    "log": ("logs", "event", "events"),
+    "logs": ("log", "event", "events"),
+    "retention": ("retain", "retained"),
+    "retain": ("retention", "retained"),
+    "period": ("duration",),
+}
+HISTORICAL_INTENT = {"former", "historical", "incident", "legacy", "old", "obsolete", "previous", "retired"}
+HISTORICAL_MARKERS = ("status: obsolete", "retired", "legacy")
 
 
 @dataclass(frozen=True)
@@ -58,6 +71,14 @@ class RetrievalResult:
 def tokenize_for_bm25(text: str) -> List[str]:
     """Lowercase Unicode tokens while retaining dotted/hyphenated identifiers."""
     return [match.group(0).casefold() for match in TOKEN_PATTERN.finditer(text or "")]
+
+
+def tokenize_query_for_bm25(text: str) -> List[str]:
+    """Remove query filler and add a small, deterministic operational synonym set."""
+    base = [token for token in tokenize_for_bm25(text) if token not in BM25_STOPWORDS]
+    return list(dict.fromkeys(
+        token for value in base for token in (value, *BM25_QUERY_ALIASES.get(value, ()))
+    ))
 
 
 def reciprocal_rank_fusion(
@@ -106,12 +127,22 @@ def _dense_candidates(store: FaissStore, embedder, query: str, candidate_count: 
 
 def _lexical_candidates(items: Sequence[Dict[str, Any]], query: str, candidate_count: int):
     corpus = [tokenize_for_bm25(item.get("retrieval_text", item.get("text", ""))) for item in items]
-    query_tokens = tokenize_for_bm25(query)
+    query_tokens = tokenize_query_for_bm25(query)
     if not corpus or not query_tokens or not any(corpus):
         return []
     scores = BM25Okapi(corpus).get_scores(query_tokens)
-    ranked = sorted(range(len(items)), key=lambda index: (-float(scores[index]), index))
-    return [(float(scores[index]), items[index]) for index in ranked[:candidate_count] if float(scores[index]) > 0.0]
+    historical_query = bool(set(query_tokens) & HISTORICAL_INTENT)
+
+    def adjusted_score(index: int) -> float:
+        matched_terms = len(set(query_tokens) & set(corpus[index]))
+        score = float(scores[index]) + 2.0 * matched_terms
+        text = str(items[index].get("retrieval_text", items[index].get("text", ""))).casefold()
+        if not historical_query and any(marker in text for marker in HISTORICAL_MARKERS):
+            return score * 0.75
+        return score
+
+    ranked = sorted(range(len(items)), key=lambda index: (-adjusted_score(index), index))
+    return [(adjusted_score(index), items[index]) for index in ranked[:candidate_count] if adjusted_score(index) > 0.0]
 
 
 def validate_store_scope(store: FaissStore, scope: RetrievalScope) -> None:
@@ -148,13 +179,27 @@ def retrieve(
                                organization_id=scope.organization_id if scope else None)
 
     candidate_count = max(50, top_k * 5)
-    dense_started = time.perf_counter()
-    query_vector, dense = _dense_candidates(store, embedder, normalized_query, candidate_count)
-    dense_latency = (time.perf_counter() - dense_started) * 1000
+    dense = []
+    dense_latency = 0.0
+    if strategy != "lexical":
+        dense_started = time.perf_counter()
+        _, dense = _dense_candidates(store, embedder, normalized_query, candidate_count)
+        dense_latency = (time.perf_counter() - dense_started) * 1000
     lexical_latency = fusion_latency = reranking_latency = 0.0
     reranking_trace: List[Dict[str, Any]] = []
 
-    if strategy == "dense":
+    if strategy == "lexical":
+        lexical_started = time.perf_counter()
+        lexical = _lexical_candidates(store.meta["items"], normalized_query, candidate_count)
+        lexical_latency = (time.perf_counter() - lexical_started) * 1000
+        hits = [
+            RetrievalHit(
+                item, rank, score,
+                lexical_rank=rank, lexical_score=score, stages=("lexical",),
+            )
+            for rank, (score, item) in enumerate(lexical[:top_k], start=1)
+        ]
+    elif strategy == "dense":
         hits = [
             RetrievalHit(item, rank, score, rank, score, stages=("dense",))
             for rank, (score, item) in enumerate(dense[:top_k], start=1)

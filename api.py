@@ -17,7 +17,7 @@ from google import genai
 from backend.config import SETTINGS
 from backend.document_parsers import DocumentParseError
 from backend.embeddings import Embedder
-from backend.grounding import get_default_verifier
+from backend.grounding import DeterministicOnlyVerifier, get_default_verifier
 from backend.grounding_policy import default_grounding_policy
 from backend.ingestion import IngestionOptions, IngestionService, IngestionWorker, QuarantinedUpload, parser_capabilities
 from backend.ingestion_registry import IngestionRegistry
@@ -295,7 +295,8 @@ def ask(req: AskRequest, request: Request = None, context: SecurityContext = Dep
         raise HTTPException(503, "Vector index is not ready for this organization.")
     started = time.perf_counter()
     try:
-        found = retrieve(active_store, get_embedder(), req.question, req.top_k, req.retrieval_strategy,
+        active_embedder = None if req.retrieval_strategy == "lexical" else get_embedder()
+        found = retrieve(active_store, active_embedder, req.question, req.top_k, req.retrieval_strategy,
                          rerank_candidates=req.rerank_candidates,
                          scope=RetrievalScope.from_context(context, getattr(getattr(request, "state", None), "request_id", "direct")))
     except SecurityBoundaryError as exc:
@@ -313,10 +314,20 @@ def ask(req: AskRequest, request: Request = None, context: SecurityContext = Dep
         PostgresReviewRegistry(platform_runtime.database, context) if platform_runtime else
         _runtime(context)[3]
     )
+    verifier = DeterministicOnlyVerifier() if SETTINGS.low_memory_demo else None
+    extractive_max_claims = 1 if SETTINGS.low_memory_demo else 3
     try:
-        output = answer_with_optional_llm(req.question, found, bool(gemini_client), gemini_client, SETTINGS.gemini_model, review_registry=reviews)
+        output = answer_with_optional_llm(
+            req.question, found, bool(gemini_client) and not SETTINGS.low_memory_demo,
+            gemini_client, SETTINGS.gemini_model, verifier=verifier,
+            review_registry=reviews, extractive_max_claims=extractive_max_claims,
+        )
     except Exception:
-        output = answer_with_optional_llm(req.question, found, False, None, SETTINGS.gemini_model, review_registry=reviews)
+        output = answer_with_optional_llm(
+            req.question, found, False, None, SETTINGS.gemini_model,
+            verifier=verifier, review_registry=reviews,
+            extractive_max_claims=extractive_max_claims,
+        )
     allowed = {hit.item.get("chunk_id") for hit in found.hits}
     if any(item.get("chunk_id") not in allowed for item in output.get("citations", [])):
         raise HTTPException(503, "Citation boundary validation failed.")

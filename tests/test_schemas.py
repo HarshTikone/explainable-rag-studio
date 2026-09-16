@@ -6,6 +6,7 @@ from backend.schemas import AskRequest
 
 def test_api_request_defaults_to_dense_mmr():
     assert AskRequest(question="hello").retrieval_strategy == "dense_mmr"
+    assert AskRequest(question="hello", retrieval_strategy="lexical").retrieval_strategy == "lexical"
     assert AskRequest(question="hello", retrieval_strategy="hybrid_rerank").retrieval_strategy == "hybrid_rerank"
 
 

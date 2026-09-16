@@ -14,10 +14,14 @@ index_ready = store.index is not None
 items = store.meta.get("items", []) if index_ready else []
 
 page_header("AI reliability workbench", "See exactly why your RAG system answered that way.", "Build a document index, inspect every retrieval decision, validate grounded answers, and measure performance from one focused workspace.")
-status_pills([("Vector index ready" if index_ready else "Index not built", index_ready), ("Gemini connected" if SETTINGS.gemini_api_key.strip() else "Extractive mode", bool(SETTINGS.gemini_api_key.strip())), (SETTINGS.embedding_model.split("/")[-1], True)])
+mode_label = "Free-tier exact evidence" if SETTINGS.low_memory_demo else ("Gemini connected" if SETTINGS.gemini_api_key.strip() else "Extractive mode")
+retriever_label = "BM25" if SETTINGS.low_memory_demo else SETTINGS.embedding_model.split("/")[-1]
+status_pills([("Vector index ready" if index_ready else "Index not built", index_ready), (mode_label, True), (retriever_label, True)])
 
 cols = st.columns(4)
-values = [("Documents", str(len({x.get('source') for x in items})), "Indexed source files"), ("Knowledge units", f"{len(items):,}", "Searchable chunks"), ("Retriever", "Hybrid", "Dense + lexical + reranking"), ("Grounding", "Strict", "Unsupported claims removed")]
+retriever = ("Lexical", "BM25 on the free hosted demo") if SETTINGS.low_memory_demo else ("Hybrid", "Dense + lexical + reranking")
+grounding = ("Exact evidence", "Deterministic guards on the free demo") if SETTINGS.low_memory_demo else ("Strict", "Unsupported claims removed")
+values = [("Documents", str(len({x.get('source') for x in items})), "Indexed source files"), ("Knowledge units", f"{len(items):,}", "Searchable chunks"), ("Retriever", *retriever), ("Grounding", *grounding)]
 for col, value in zip(cols, values):
     with col: metric_card(*value)
 

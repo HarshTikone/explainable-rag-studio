@@ -7,10 +7,13 @@ services:
     plan: free
     healthCheckPath: /_stcore/health
     envVars:
-      # Render exposes service environment variables to Docker builds as build
-      # arguments. Dockerfile's matching ARG therefore prefetches the models
-      # into the image instead of downloading them on the first live query.
+      # The 512 MB free service uses lexical retrieval and exact-evidence
+      # grounding, so heavyweight local models are intentionally not loaded.
       - key: PREFETCH_MODELS
+        value: "false"
+      - key: BUILD_DEMO_INDEX
+        value: "true"
+      - key: LOW_MEMORY_DEMO
         value: "true"
       # Legacy profile: local FAISS/SQLite, no Postgres/Redis/MinIO/Keycloak stack.
       # This is the public, sanitized, single-process demo profile -- not the

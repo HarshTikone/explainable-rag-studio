@@ -24,6 +24,11 @@ class FakeEmbedder:
         return np.asarray(vectors[:len(texts)], dtype="float32")
 
 
+class FailingEmbedder:
+    def embed_query(self, query):
+        raise AssertionError("lexical retrieval must not load or call an embedder")
+
+
 class FakeReranker:
     model_name = "fake-cross-encoder"
 
@@ -55,6 +60,24 @@ def test_all_retrieval_strategies_return_structured_hits():
     assert "mmr" in mmr.hits[0].stages
     assert hybrid.hits[0].item["chunk_id"] == "exact"
     assert hybrid.hits[0].lexical_rank == 1
+
+
+def test_lexical_retrieval_does_not_call_embedder():
+    result = retrieve(FakeStore(), FailingEmbedder(), "NX-417", 2, "lexical")
+    assert result.hits[0].item["chunk_id"] == "exact"
+    assert result.hits[0].stages == ("lexical",)
+    assert result.dense_latency_ms == 0.0
+
+
+def test_lexical_retrieval_expands_log_terms_and_prefers_current_policy():
+    store = FakeStore()
+    store.meta["items"] = [
+        {"chunk_id": "billing", "text": "The invoice evidence retention period is seven years.", "source": "billing", "page": 1},
+        {"chunk_id": "legacy", "text": "Status: obsolete. Audit events were retained for 90 days.", "source": "legacy", "page": 1},
+        {"chunk_id": "current", "text": "Status: current. Audit events are retained for 400 days.", "source": "current", "page": 1},
+    ]
+    result = retrieve(store, FailingEmbedder(), "What is the audit log retention period?", 3, "lexical")
+    assert result.hits[0].item["chunk_id"] == "current"
 
 
 def test_hybrid_rerank_propagates_scores_and_truncates_candidates():

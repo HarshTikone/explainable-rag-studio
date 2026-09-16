@@ -8,6 +8,7 @@ load_dotenv()
 class Settings:
     # production platform (legacy keeps the offline FAISS/SQLite demo readable)
     platform_mode: str = os.getenv("PLATFORM_MODE", "legacy").strip().lower()
+    low_memory_demo: bool = os.getenv("LOW_MEMORY_DEMO", "false").lower() == "true"
     database_url: str = os.getenv("DATABASE_URL", "")
     # Bypasses row-level security for pg_dump/pg_restore; database_url's role
     # (rag_app) is deliberately NOBYPASSRLS and can't produce a complete backup.

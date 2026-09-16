@@ -9,6 +9,7 @@ from backend.vectorstore import FaissStore
 from backend.retriever import retrieve
 from backend.reranker import RerankerUnavailableError
 from backend.qa import answer_with_optional_llm
+from backend.grounding import DeterministicOnlyVerifier
 from backend.review_registry import ReviewRegistry
 from backend.telemetry import log_run
 from backend.utils import now_ms
@@ -34,39 +35,39 @@ if not loaded:
     st.warning("No index found. Go to “Ingest & Index” first.")
     st.stop()
 
-status_pills([("Index online", True), (f"{len(store.meta.get('items', [])):,} chunks", True), ("Gemini" if SETTINGS.gemini_api_key.strip() else "Extractive fallback", bool(SETTINGS.gemini_api_key.strip()))])
+generator_label = "Free-tier exact evidence" if SETTINGS.low_memory_demo else ("Gemini" if SETTINGS.gemini_api_key.strip() else "Extractive fallback")
+status_pills([("Index online", True), (f"{len(store.meta.get('items', [])):,} chunks", True), (generator_label, True)])
 
 section("Query controls", "Tune retrieval depth and diversity for this run.")
 col1, col2, col3 = st.columns(3)
 with col1:
     top_k = st.slider("Top-K chunks", 3, 12, SETTINGS.top_k, step=1)
 with col2:
-    strategy = st.selectbox("Retrieval strategy", ["dense_mmr", "dense", "hybrid_rrf", "hybrid_rerank"], format_func=lambda value: {"dense": "Dense", "dense_mmr": "Dense + MMR", "hybrid_rrf": "Hybrid (Dense + BM25 + RRF)", "hybrid_rerank": "Hybrid + cross-encoder reranking"}[value])
+    strategies = ["lexical"] if SETTINGS.low_memory_demo else ["dense_mmr", "dense", "hybrid_rrf", "hybrid_rerank", "lexical"]
+    strategy = st.selectbox("Retrieval strategy", strategies, format_func=lambda value: {"lexical": "Lexical (BM25)", "dense": "Dense", "dense_mmr": "Dense + MMR", "hybrid_rrf": "Hybrid (Dense + BM25 + RRF)", "hybrid_rerank": "Hybrid + cross-encoder reranking"}[value])
 with col3:
-    embed_model = st.text_input("Embedding model", SETTINGS.embedding_model)
+    embed_model = st.text_input("Embedding model", "Not loaded on the free tier" if SETTINGS.low_memory_demo else SETTINGS.embedding_model, disabled=SETTINGS.low_memory_demo)
 
 question = st.text_area("Your question", height=120, placeholder="What does the evidence say about…?")
-
-use_gemini = True  # We default to Gemini; fallback occurs if key missing
-st.caption("Generator: Gemini (falls back to extractive if no API key detected)")
 
 gemini_client = None
 gemini_model = SETTINGS.gemini_model
 review_registry = ReviewRegistry(str(tenant_dir(security) / "reviews.db"))
+verifier = DeterministicOnlyVerifier() if SETTINGS.low_memory_demo else None
 
 # Init Gemini client
 # If GEMINI_API_KEY is set in env, genai.Client() will pick it up automatically.
 # You can also pass api_key explicitly.
-from google import genai
-
-gemini_client = None
 use_gemini = False
 
-if SETTINGS.gemini_api_key.strip():
+if SETTINGS.low_memory_demo:
+    st.info("Free-tier mode uses BM25 retrieval and exact-evidence grounding to stay within Render's 512 MB limit.")
+elif SETTINGS.gemini_api_key.strip():
     try:
+        from google import genai
         gemini_client = genai.Client(api_key=SETTINGS.gemini_api_key)
         use_gemini = True
-    except Exception as e:
+    except Exception:
         st.warning("Gemini API key detected but client initialization failed.")
         use_gemini = False
 else:
@@ -75,7 +76,7 @@ else:
 
 # If no key is actually available, requests will fail; we detect that at runtime and fallback.
 if st.button("Run grounded query", type="primary", disabled=not question.strip(), use_container_width=True):
-    embedder = Embedder(embed_model)
+    embedder = None if strategy == "lexical" else Embedder(embed_model)
 
     t0 = time.time()
     try:
@@ -100,7 +101,9 @@ if st.button("Run grounded query", type="primary", disabled=not question.strip()
                     use_gemini=use_gemini,
                     gemini_client=gemini_client,
                     gemini_model=gemini_model,
+                    verifier=verifier,
                     review_registry=review_registry,
+                    extractive_max_claims=1 if SETTINGS.low_memory_demo else 3,
                 )
     except Exception:
         out = answer_with_optional_llm(
@@ -109,7 +112,9 @@ if st.button("Run grounded query", type="primary", disabled=not question.strip()
             use_gemini=False,
             gemini_client=None,
             gemini_model=gemini_model,
+            verifier=verifier,
             review_registry=review_registry,
+            extractive_max_claims=1 if SETTINGS.low_memory_demo else 3,
         )
 
     t2 = time.time()
