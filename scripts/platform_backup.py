@@ -12,7 +12,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.parse_args()
     runtime = get_platform_runtime(required=True)
-    print(json.dumps(create_encrypted_backup(SETTINGS.database_url, runtime.object_store), indent=2))
+    print(json.dumps(create_encrypted_backup(SETTINGS.admin_database_url, runtime.object_store), indent=2))
 
 
 if __name__ == "__main__":

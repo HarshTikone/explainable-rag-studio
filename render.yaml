@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: explainable-rag-studio-demo
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Prefetch models into the image at build time rather than lazily on first
+    # request -- avoids a slow, cold first query for the first visitor after
+    # every deploy/restart, and avoids re-downloading them from an ephemeral
+    # container's disk on every restart.
+    dockerBuildArgs:
+      PREFETCH_MODELS: "true"
+    plan: standard
+    port: 8501
+    healthCheckPath: /_stcore/health
+    envVars:
+      # Legacy profile: local FAISS/SQLite, no Postgres/Redis/MinIO/Keycloak stack.
+      # This is the public, sanitized, single-process demo profile -- not the
+      # multi-tenant production platform in docker-compose.yml.
+      - key: PLATFORM_MODE
+        value: legacy
+      # Anonymous visitors get the "viewer" role (query + documents:read only,
+      # per backend/security_models.py's ROLE_SCOPES) -- no document upload,
+      # no write access. Query volume is rate-limited (MemoryDemoRateLimiter,
+      # 60 requests/minute shared across anonymous visitors by default).
+      - key: SECURITY_MODE
+        value: demo
+      # Optional. Without it, claim generation falls back to the deterministic
+      # extractive mode (docs/CLAIM_LEVEL_GROUNDING.md) -- the demo still works,
+      # just without live Gemini generation. Set this in the Render dashboard
+      # after the blueprint deploys; never commit a real key here.
+      - key: GEMINI_API_KEY
+        sync: false
+    # Persists the FAISS/BM25 index across deploys and restarts, so visitors
+    # get a ready-to-query demo rather than an empty index every time the
+    # container restarts. backend/config.py's index_dir/outputs_dir are fixed
+    # relative paths (not independently env-var-configurable), so only the
+    # index -- the highest-value thing to keep -- is persisted here; outputs/
+    # (reviews.db, security.db) stays ephemeral, which is fine for an
+    # anonymous, read-only public demo with no persistent accounts.
+    disk:
+      name: demo-index
+      mountPath: /app/index
+      sizeGB: 1

@@ -698,5 +698,585 @@
     "answerable": false,
     "category": "unanswerable",
     "expected_source_versions": []
+  },
+  {
+    "question": "What embedding model does Northstar's dense retriever use?",
+    "reference_answer": "all-MiniLM-L6-v2",
+    "relevant_chunk_ids": [
+      "chk_db933482a95508491711"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "What canary phrase does the Sentinel scanner flag?",
+    "reference_answer": "ORCHID-VAULT-29",
+    "relevant_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "What must citation validity equal under Northstar's evaluation policy?",
+    "reference_answer": "1.00",
+    "relevant_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "What health endpoint does the production service expose?",
+    "reference_answer": "/health",
+    "relevant_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "What was the recovery time for incident IR-2026-08?",
+    "reference_answer": "37 minutes",
+    "relevant_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What access code signals a policy-context mismatch under Gatehouse?",
+    "reference_answer": "AC-9104",
+    "relevant_chunk_ids": [
+      "chk_7e15b43d3b039cee8683"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What response code opens the critical incident channel?",
+    "reference_answer": "RS-1001",
+    "relevant_chunk_ids": [
+      "chk_1a030d8707d2d6af6e14"
+    ],
+    "answerable": true,
+    "category": "exact_term",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What incident ID recorded a missing organization tag that triggered AC-9104?",
+    "reference_answer": "SC-2026-126",
+    "relevant_chunk_ids": [
+      "chk_dfd5f88bc7abc746fd77"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident ID delayed creation of the RS-1001 channel?",
+    "reference_answer": "OP-2026-139",
+    "relevant_chunk_ids": [
+      "chk_d48e5e818c68c65096db"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What incident ID activated the reasoning-model fallback for MR-4408?",
+    "reference_answer": "AI-2026-148",
+    "relevant_chunk_ids": [
+      "chk_aab07be9474bb3bbe29f"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident ID exposed an MRR comparison run against a smaller benchmark?",
+    "reference_answer": "EV-2026-157",
+    "relevant_chunk_ids": [
+      "chk_455e89d9c61909c72fbb"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What incident ID followed a terminated index rebuild that caused ST-7305?",
+    "reference_answer": "KG-2026-169",
+    "relevant_chunk_ids": [
+      "chk_34b9e7bec8b0a86b015b"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident ID triggered OB-6602 after missing reranking spans?",
+    "reference_answer": "OP-2026-178",
+    "relevant_chunk_ids": [
+      "chk_5f8c65f5d60ad67a0271"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "What incident ID followed a mobile client sending an underscore locale code?",
+    "reference_answer": "UX-2026-186",
+    "relevant_chunk_ids": [
+      "chk_3d829d59f3ba9fec8c1b"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "Which incident ID retained two obsolete chunks after a handbook rename?",
+    "reference_answer": "KG-2026-194",
+    "relevant_chunk_ids": [
+      "chk_438469807a205cf4c496"
+    ],
+    "answerable": true,
+    "category": "identifier",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "How does Sentinel treat uploaded sources before they are indexed?",
+    "reference_answer": "as untrusted content",
+    "relevant_chunk_ids": [
+      "chk_c8e82e5f03e4c45ae1da"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "How much retrieval p95 latency headroom does a promoted candidate get over baseline?",
+    "reference_answer": "up to 1.25 times the baseline",
+    "relevant_chunk_ids": [
+      "chk_e08365218073c92ae758"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "What lets retrieval benchmarks continue without a Gemini API key?",
+    "reference_answer": "a deterministic extractive fallback",
+    "relevant_chunk_ids": [
+      "chk_e6972a9bd8eb8fcbc09b"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "general"
+    ]
+  },
+  {
+    "question": "What did the NX-417 incident add for future filtering?",
+    "reference_answer": "a freshness field",
+    "relevant_chunk_ids": [
+      "chk_5b1c417fcf600bfdd264"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "incident"
+    ]
+  },
+  {
+    "question": "How does Compass decide which model handles a question?",
+    "reference_answer": "simple grounded questions go to the flash model, complex multi-hop questions go to the reasoning model",
+    "relevant_chunk_ids": [
+      "chk_70070cec309327f4b8bf"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "How does the current Gauge policy bound Recall regression?",
+    "reference_answer": "regression may not exceed 0.01",
+    "relevant_chunk_ids": [
+      "chk_f149d17eb95e65fdf5db"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What must never happen to a FAISS generation with mismatched vector and metadata counts?",
+    "reference_answer": "it must never be activated",
+    "relevant_chunk_ids": [
+      "chk_a62820276c9f91b88b81"
+    ],
+    "answerable": true,
+    "category": "paraphrase",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Gatehouse filter access before or after generation?",
+    "reference_answer": "before generation, inside retrieval",
+    "relevant_chunk_ids": [
+      "chk_7e15b43d3b039cee8683"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Is severity-one acknowledgement currently five minutes or twenty minutes?",
+    "reference_answer": "five minutes",
+    "relevant_chunk_ids": [
+      "chk_1a030d8707d2d6af6e14"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Compass currently route every question to one general model, or use complexity-aware routing?",
+    "reference_answer": "complexity-aware routing",
+    "relevant_chunk_ids": [
+      "chk_70070cec309327f4b8bf"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does the current Gauge gate accept any positive accuracy change, or require fingerprint and latency checks?",
+    "reference_answer": "fingerprint and latency checks",
+    "relevant_chunk_ids": [
+      "chk_f149d17eb95e65fdf5db"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Vault currently write vectors and metadata atomically or independently?",
+    "reference_answer": "atomically",
+    "relevant_chunk_ids": [
+      "chk_a62820276c9f91b88b81"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Signal currently record only total request time, or per-stage latency?",
+    "reference_answer": "per-stage latency",
+    "relevant_chunk_ids": [
+      "chk_ff4e50c1981e30a48b81"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "Does Orbit currently identify sources by filename, or by SHA-256 checksum and version ID?",
+    "reference_answer": "SHA-256 checksum and version ID",
+    "relevant_chunk_ids": [
+      "chk_32c59c8e2acaaac6c7c0"
+    ],
+    "answerable": true,
+    "category": "hard_negative",
+    "expected_source_versions": [
+      "current"
+    ]
+  },
+  {
+    "question": "What organization-tagging gap triggered AC-9104 in isolation tests, and was production affected?",
+    "reference_answer": "a staging index omitted one organization tag; no production query or customer data was affected",
+    "relevant_chunk_ids": [
+      "chk_7e15b43d3b039cee8683",
+      "chk_dfd5f88bc7abc746fd77"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What delayed the RS-1001 channel during OP-2026-139, and how was the commander still assigned on time?",
+    "reference_answer": "the alert router delayed channel creation by six minutes; the commander was assigned through the backup path",
+    "relevant_chunk_ids": [
+      "chk_1a030d8707d2d6af6e14",
+      "chk_d48e5e818c68c65096db"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "How long was the complexity classifier unavailable during AI-2026-148, and what fallback activated?",
+    "reference_answer": "13 minutes; the reasoning-model fallback",
+    "relevant_chunk_ids": [
+      "chk_70070cec309327f4b8bf",
+      "chk_aab07be9474bb3bbe29f"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "Why did a candidate appear to improve MRR during EV-2026-157, and what did fingerprint validation do?",
+    "reference_answer": "it ran against a smaller benchmark; fingerprint validation rejected the comparison",
+    "relevant_chunk_ids": [
+      "chk_f149d17eb95e65fdf5db",
+      "chk_455e89d9c61909c72fbb"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What caused ST-7305 during KG-2026-169, and was the bad generation activated?",
+    "reference_answer": "a terminated rebuild wrote vectors but not final metadata; the generation was never activated",
+    "relevant_chunk_ids": [
+      "chk_a62820276c9f91b88b81",
+      "chk_34b9e7bec8b0a86b015b"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What triggered OB-6602 during OP-2026-178, and for how long was cost attribution incomplete?",
+    "reference_answer": "a client update omitted reranking spans; 46 minutes",
+    "relevant_chunk_ids": [
+      "chk_ff4e50c1981e30a48b81",
+      "chk_5f8c65f5d60ad67a0271"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What locale value triggered LC-3008 during UX-2026-186, and how was it fixed?",
+    "reference_answer": "pt_BR instead of pt-BR; the accepted-locale validator now handles underscore variants",
+    "relevant_chunk_ids": [
+      "chk_978705e8ce19baa5dd4a",
+      "chk_3d829d59f3ba9fec8c1b"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What caused DL-2406 during KG-2026-194, and how was it resolved?",
+    "reference_answer": "a renamed handbook retained two obsolete chunks; rebuilding from checksummed sources removed them",
+    "relevant_chunk_ids": [
+      "chk_32c59c8e2acaaac6c7c0",
+      "chk_438469807a205cf4c496"
+    ],
+    "answerable": true,
+    "category": "multi_hop",
+    "expected_source_versions": [
+      "current",
+      "incident"
+    ]
+  },
+  {
+    "question": "What is Northstar's total employee headcount?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Which venture capital firms invested in Northstar?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What is the office address of the Search Reliability team?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Who manages Northstar's public relations?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What programming language is the Compass reasoning model written in?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "How many data centers does Northstar operate?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What is the personal email address of the Identity Reliability team lead?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Which stock exchange lists Northstar?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What is Northstar's customer support phone number?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "How much funding did Northstar raise in its most recent round?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What operating system runs on Northstar's production servers?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Who audits Northstar's SOC 2 compliance report?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What is the average tenure of Northstar's engineering staff?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "Which conference did Northstar present Aurora 3.2 at?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
+  },
+  {
+    "question": "What is the manufacturing cost of Northstar's hardware appliance?",
+    "reference_answer": "",
+    "relevant_chunk_ids": [],
+    "answerable": false,
+    "category": "unanswerable",
+    "expected_source_versions": []
   }
 ]

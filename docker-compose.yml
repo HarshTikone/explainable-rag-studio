@@ -55,7 +55,7 @@ services:
       retries: 20
 
   minio:
-    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    image: quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z
     command: server /data --console-address :9001
     environment:
       MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
@@ -69,7 +69,7 @@ services:
       retries: 20
 
   create-bucket:
-    image: minio/mc:RELEASE.2025-07-21T05-28-08Z
+    image: quay.io/minio/mc:RELEASE.2025-07-21T05-28-08Z
     depends_on:
       minio: {condition: service_healthy}
     secrets: [minio_access_key, minio_secret_key]
@@ -82,16 +82,19 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.3
-    command: start-dev --import-realm
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        export KC_DB_PASSWORD="$$(cat /run/secrets/keycloak_db_password)" &&
+        export KC_BOOTSTRAP_ADMIN_PASSWORD="$$(cat /run/secrets/keycloak_admin_password)" &&
+        exec /opt/keycloak/bin/kc.sh start-dev --import-realm
     depends_on:
       postgres: {condition: service_healthy}
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD_FILE: /run/secrets/keycloak_db_password
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/keycloak_admin_password
       KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME: http://keycloak.localhost:8080
     secrets: [keycloak_db_password, keycloak_admin_password]
@@ -117,7 +120,21 @@ services:
     build: {context: ., args: {PREFETCH_MODELS: "false"}}
     command: ["sh", "deploy/start-service.sh", "api"]
     environment: *app-environment
-    secrets: *app-secrets
+    secrets:
+      - api_key_pepper
+      - audit_hmac_key
+      - rag_app_password
+      - minio_access_key
+      - minio_secret_key
+      - object_master_key
+      - oidc_client_secret
+      - redis_password
+      # Backup/restore (scripts/platform_backup.py, restore_validate.py) need a
+      # role that bypasses row-level security; rag_app is deliberately
+      # NOBYPASSRLS for tenant isolation during normal request handling, so
+      # only the api container additionally gets the postgres superuser
+      # credential, used solely for pg_dump/pg_restore.
+      - postgres_password
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}

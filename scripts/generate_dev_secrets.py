@@ -34,7 +34,13 @@ def main() -> None:
             continue
         path.write_text(value + "\n", encoding="utf-8")
         try:
-            path.chmod(0o600)
+            # Docker Compose bind-mounts these files verbatim into containers that
+            # read them as their own unprivileged, non-matching UID (postgres,
+            # redis, the app image's "rag" user). 0600 leaves only the host user
+            # able to read them, so every service fails with "Permission denied"
+            # on /run/secrets/*. World-readable is fine here: this directory is
+            # gitignored, host-local, and reference/CI secrets only.
+            path.chmod(0o644)
         except OSError:
             pass
     print(f"Development secrets are ready in {target}")
