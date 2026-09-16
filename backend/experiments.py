@@ -20,6 +20,7 @@ from .config import SETTINGS
 from .grounding_policy import default_grounding_policy
 
 EXPERIMENT_SCHEMA_VERSION = "3.3"
+SOURCE_TREE_EXCLUDED_FILES = {"docs/benchmarks/quality-gate-reference.json"}
 
 
 def _canonical_json(value: Any) -> str:
@@ -75,10 +76,15 @@ def source_tree_state(root: str | None = None) -> Dict[str, Any]:
         return {"dirty": None, "source_tree_fingerprint": "unknown"}
     digest = hashlib.sha256()
     for relative in sorted(value.strip() for value in listed if value.strip()):
+        normalized = relative.replace("\\", "/")
         path = base / relative
-        if not path.is_file() or relative.startswith(("outputs/", "index/", ".venv/")):
+        if (
+            not path.is_file()
+            or normalized in SOURCE_TREE_EXCLUDED_FILES
+            or normalized.startswith(("outputs/", "index/", ".venv/"))
+        ):
             continue
-        digest.update(relative.replace("\\", "/").encode("utf-8"))
+        digest.update(normalized.encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
         digest.update(b"\0")
