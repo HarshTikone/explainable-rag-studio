@@ -140,6 +140,8 @@ class IngestionRegistry:
                 "SELECT dimension, vector FROM embedding_cache WHERE content_fingerprint=? AND embedding_model=?",
                 (fingerprint, model),
             ).fetchone()
+        from .telemetry import record_cache_event
+        record_cache_event("embedding", bool(row))
         return np.frombuffer(row["vector"], dtype="float32").copy() if row else None
 
     def put_cached_embeddings(self, model: str, chunks: Sequence[ChildChunk], vectors: np.ndarray) -> None:
@@ -163,6 +165,8 @@ class IngestionRegistry:
     def get_context(self, cache_key: str) -> str | None:
         with self.connect() as connection:
             row = connection.execute("SELECT context FROM context_cache WHERE cache_key=?", (cache_key,)).fetchone()
+        from .telemetry import record_cache_event
+        record_cache_event("context", bool(row))
         return row[0] if row else None
 
     def put_context(self, cache_key: str, model: str, prompt_version: str, context: str) -> None:

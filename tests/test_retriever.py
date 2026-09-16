@@ -12,7 +12,8 @@ class FakeStore:
         ]}
 
     def search(self, query_vector, top_k):
-        return [(0.95, self.meta["items"][0]), (0.80, self.meta["items"][1]), (0.10, self.meta["items"][2])][:top_k]
+        scores = (0.95, 0.80, 0.10)
+        return [(score, item) for score, item in zip(scores, self.meta["items"])][:top_k]
 
 
 class FakeEmbedder:
@@ -79,6 +80,11 @@ def test_lexical_retrieval_expands_log_terms_and_prefers_current_policy():
     result = retrieve(store, FailingEmbedder(), "What is the audit log retention period?", 3, "lexical")
     assert result.hits[0].item["chunk_id"] == "current"
 
+    contrast = retrieve(
+        store, FailingEmbedder(), "What is the current audit retention rather than the obsolete period?", 3, "lexical"
+    )
+    assert contrast.hits[0].item["chunk_id"] == "current"
+
 
 def test_hybrid_rerank_propagates_scores_and_truncates_candidates():
     store, embedder = FakeStore(), FakeEmbedder()
@@ -108,6 +114,50 @@ def test_hybrid_rerank_stable_ties_keep_fusion_order():
         store, embedder, "NX-417", 2, "hybrid_rerank", FakeReranker([0.5, 0.5]), rerank_candidates=2
     )
     assert [hit.item["chunk_id"] for hit in reranked.hits] == [hit.item["chunk_id"] for hit in fused.hits]
+
+
+def test_hybrid_rerank_demotes_obsolete_evidence_for_current_questions():
+    store = FakeStore()
+    store.meta["items"] = [
+        {
+            "chunk_id": "current", "source_version": "current",
+            "text": "Status: current. Audit events are retained for 400 days.", "source": "current", "page": 1,
+        },
+        {
+            "chunk_id": "obsolete", "source_version": "obsolete",
+            "text": "Status: obsolete. Audit events were retained for 90 days.", "source": "old", "page": 1,
+        },
+    ]
+
+    result = retrieve(
+        store, FakeEmbedder(), "Is the current retention 400 or 90 days?", 2,
+        "hybrid_rerank", FakeReranker([0.1, 0.99]), rerank_candidates=2,
+    )
+
+    assert [hit.item["chunk_id"] for hit in result.hits] == ["current", "obsolete"]
+    assert result.reranking_trace[0]["obsolete_for_query"] is False
+    assert result.reranking_trace[1]["obsolete_for_query"] is True
+
+
+def test_hybrid_rerank_allows_obsolete_evidence_for_historical_questions():
+    store = FakeStore()
+    store.meta["items"] = [
+        {
+            "chunk_id": "current", "source_version": "current",
+            "text": "Status: current. Audit events are retained for 400 days.", "source": "current", "page": 1,
+        },
+        {
+            "chunk_id": "obsolete", "source_version": "obsolete",
+            "text": "Status: obsolete. Audit events were retained for 90 days.", "source": "old", "page": 1,
+        },
+    ]
+
+    result = retrieve(
+        store, FakeEmbedder(), "What was the obsolete retention period?", 2,
+        "hybrid_rerank", FakeReranker([0.1, 0.99]), rerank_candidates=2,
+    )
+
+    assert result.hits[0].item["chunk_id"] == "obsolete"
 
 
 def test_rerank_candidate_pool_must_cover_top_k():

@@ -29,16 +29,12 @@ def test_ask_api_accepts_hybrid_rerank_and_returns_stage_fields(monkeypatch):
         reranker_score=2.5,
         stages=("dense", "lexical", "reranker"),
     )
-    monkeypatch.setattr(
-        api,
-        "retrieve",
-        lambda *args, **kwargs: RetrievalResult("hybrid_rerank", [hit], 50, 8.0, 1.0, 1.0, 1.0, 5.0),
-    )
-    monkeypatch.setattr(
-        api,
-        "answer_with_optional_llm",
-        lambda *args, **kwargs: {"answer": "answer", "citations": [{"chunk_id": "c1"}]},
-    )
+    monkeypatch.setattr(api, "run_query", lambda **kwargs: {
+        "answer": "answer", "citations": [{"chunk_id": "c1"}], "grounding": {},
+        "generation": {"mode": "test", "usage": {}},
+        "latency_ms": {"retrieval_ms": 1, "generation_ms": 1, "verification_ms": 0, "total_ms": 2},
+        "retrieval_result": RetrievalResult("hybrid_rerank", [hit], 50, 8.0, 1.0, 1.0, 1.0, 5.0),
+    })
     body = api.ask(
         AskRequest(question="question", top_k=2, retrieval_strategy="hybrid_rerank", rerank_candidates=2)
     )
@@ -53,6 +49,8 @@ def test_ask_api_rejects_invalid_strategy_and_candidate_bounds():
         AskRequest(question="q", retrieval_strategy="invalid")
     with pytest.raises(ValidationError):
         AskRequest(question="q", rerank_candidates=0)
+    with pytest.raises(ValidationError):
+        AskRequest(question="q", retrieval_strategy="lexical", embedding_model="arbitrary/model")
 
 
 def test_ingestion_api_accepts_multipart_and_validates_bounds(monkeypatch):

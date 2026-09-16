@@ -118,15 +118,21 @@ exactly this use case.
    `free` plan. The 512 MB service uses BM25 retrieval plus exact-evidence grounding and does not
    load the dense embedding, reranking, or semantic NLI models. The full local-model stack remains
    the default everywhere else; this setting is deliberately scoped to the cost-free public demo.
-3. `GEMINI_API_KEY` remains an optional secret field (`sync: false`) but is intentionally not used
-   in low-memory mode: the hosted free demo returns extractive claims that can be validated without
-   loading the semantic verifier. Never commit a real key here.
+3. `GEMINI_API_KEY` is an optional dashboard-managed secret (`sync: false`) from a dedicated
+   project with no linked billing. In low-memory mode Gemini may select at most two verbatim cited
+   evidence sentences. One call is allowed per query with a 12-second timeout; invalid output,
+   timeout, quota, or provider failure falls back to deterministic extraction. Global limits are
+   2 calls/minute and 20/day, per-session limits are 1/minute and 5/day, concurrency is one, and a
+   provider failure opens a five-minute circuit. Never commit a real key here.
 4. The free Blueprint deliberately has no persistent disk. The Docker build therefore runs
    `scripts/build_demo_index.py` and bakes the bundled public demo metadata into the image. Every
    fresh instance starts query-ready, while anonymous `viewer` access remains unable to ingest or
    modify documents.
-5. Link the live URL from `README.md`'s demo section, and from
-   `docs/DEMO_WALKTHROUGH_SCRIPT.md` once that's recorded against the live instance.
+5. Before the final deploy, verify in the Render dashboard that the service still reports the
+   Free plan and has no paid disk or add-ons. Deploy only the exact approved merge SHA from `main`.
+6. Smoke-test Home, What is RAG, Ask & Explain, and Results; then run the four documented sample
+   questions and verify the generation/fallback badges and deployed SHA.
+7. Link the live URL from `README.md` and record the walkthrough only after this smoke test passes.
 
 ### Live verification history
 
@@ -135,3 +141,7 @@ grounded query exceeded Render's 512 MB memory limit. That result is why the Blu
 `LOW_MEMORY_DEMO=true`. Re-run the home-page, health, and grounded-query smoke tests after every
 deployment; treat any Render out-of-memory event as a failed smoke test, even if the service later
 recovers automatically.
+
+The release workflow independently builds the public image, runs the deterministic `/ask` route
+and all four Streamlit pages under a 512 MB container limit, requires peak RSS below 450 MB, and
+checks that `render.yaml` keeps `plan: free` with no disk or database resources.

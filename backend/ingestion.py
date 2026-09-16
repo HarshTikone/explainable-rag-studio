@@ -17,6 +17,7 @@ from typing import Any, Dict, List
 import numpy as np
 
 from .config import SETTINGS
+from .observability import span
 from .contextual_chunking import CHUNKER_VERSION, CONTEXT_PROMPT_VERSION, build_contextual_chunks
 from .document_parsers import PARSER_VERSION, DocumentParseError, SUPPORTED_SUFFIXES, parse_document, source_sha256, stable_document_id
 from .experiments import corpus_fingerprint
@@ -265,26 +266,29 @@ class IngestionService:
             if manifest_versions == registry_versions and "ver_" + checksum[:20] in manifest_versions and manifest_embedding_model == options.embedding_model:
                 return {"outcome": "unchanged", "document_id": document_id, "source_sha256": checksum, "warnings": []}
         progress("parsing", 0.15, "Parsing structured content")
-        parsed = parse_document(
-            path, source_name=source_name, source_version=options.source_version,
-            ocr_executable=SETTINGS.ocr_executable or None, organization_id=self.organization_id,
-            created_by=payload.get("created_by", self.actor_user_id), trust_state=payload.get("trust_state", "untrusted"),
-        )
+        with span("rag.ingestion.parse", {"rag.document.mime_known": bool(source_name)}):
+            parsed = parse_document(
+                path, source_name=source_name, source_version=options.source_version,
+                ocr_executable=SETTINGS.ocr_executable or None, organization_id=self.organization_id,
+                created_by=payload.get("created_by", self.actor_user_id), trust_state=payload.get("trust_state", "untrusted"),
+            )
         progress("ocr", 0.28, "OCR and table extraction checks completed")
         progress("chunking", 0.35, "Building parent and child chunks")
         progress("context", 0.45, f"Applying {options.context_mode} chunk context")
-        chunks = build_contextual_chunks(
-            parsed.document, parsed.version, parsed.blocks,
-            child_tokens=options.child_tokens, overlap_tokens=options.overlap_tokens,
-            parent_tokens=options.parent_tokens, context_enhancer=self._context_enhancer(options),
-        )
+        with span("rag.ingestion.chunk", {"rag.chunk.target_tokens": options.child_tokens}):
+            chunks = build_contextual_chunks(
+                parsed.document, parsed.version, parsed.blocks,
+                child_tokens=options.child_tokens, overlap_tokens=options.overlap_tokens,
+                parent_tokens=options.parent_tokens, context_enhancer=self._context_enhancer(options),
+            )
         if not chunks:
             raise DocumentParseError("EMPTY_DOCUMENT", "Parsing produced no searchable chunks.")
         progress("embedding", 0.55, "Embedding new contextual chunks")
         missing = [chunk for chunk in chunks if self.registry.get_cached_embedding(chunk.content_fingerprint, options.embedding_model) is None]
         if missing:
             embedder = self._embedder(options.embedding_model)
-            new_vectors = embedder.embed_texts([chunk.retrieval_text for chunk in missing])
+            with span("rag.ingestion.embed", {"rag.embedding.count": len(missing), "rag.embedding.model": options.embedding_model}):
+                new_vectors = embedder.embed_texts([chunk.retrieval_text for chunk in missing])
             self.registry.put_cached_embeddings(options.embedding_model, missing, new_vectors)
         lock_owner = uuid.uuid4().hex
         if not self.registry.acquire_lock("index_activation", lock_owner):

@@ -15,6 +15,32 @@ services:
         value: "true"
       - key: LOW_MEMORY_DEMO
         value: "true"
+      - key: PUBLIC_GEMINI_ENABLED
+        value: "true"
+      - key: DEMO_GEMINI_GLOBAL_RPM
+        value: "2"
+      - key: DEMO_GEMINI_GLOBAL_RPD
+        value: "20"
+      - key: DEMO_GEMINI_SESSION_RPM
+        value: "1"
+      - key: DEMO_GEMINI_SESSION_RPD
+        value: "5"
+      - key: DEMO_GEMINI_TIMEOUT_SECONDS
+        value: "12"
+      - key: DEMO_GEMINI_CIRCUIT_SECONDS
+        value: "300"
+      - key: DEMO_QUESTION_MAX_CHARS
+        value: "500"
+      - key: DEMO_CONTEXT_MAX_CHARS
+        value: "12000"
+      - key: DEMO_TOP_K_MAX
+        value: "6"
+      - key: GENAI_PRICING_TIER
+        value: free
+      - key: GENAI_INPUT_COST_PER_MILLION_USD
+        value: "0"
+      - key: GENAI_OUTPUT_COST_PER_MILLION_USD
+        value: "0"
       # Legacy profile: local FAISS/SQLite, no Postgres/Redis/MinIO/Keycloak stack.
       # This is the public, sanitized, single-process demo profile -- not the
       # multi-tenant production platform in docker-compose.yml.
@@ -26,9 +52,9 @@ services:
       # 60 requests/minute shared across anonymous visitors by default).
       - key: SECURITY_MODE
         value: demo
-      # Optional. Without it, claim generation falls back to the deterministic
-      # extractive mode (docs/CLAIM_LEVEL_GROUNDING.md) -- the demo still works,
-      # just without live Gemini generation. Set this in the Render dashboard
-      # after the blueprint deploys; never commit a real key here.
+      # Optional. The key must belong to an unbilled Gemini Free-tier project.
+      # Gemini may only select verbatim cited evidence and is protected by the
+      # app's global/session allowance. Quota or provider failures fall back to
+      # deterministic extraction. Never commit a real key here.
       - key: GEMINI_API_KEY
         sync: false

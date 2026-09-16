@@ -19,7 +19,7 @@ from backend.grounding import (
 )
 from backend.grounding_models import DraftClaim, StructuredDraft
 from backend.grounding_policy import GroundingPolicy
-from backend.qa import answer_with_optional_llm
+from backend.qa import answer_with_optional_llm, extractive_answer
 
 
 class FakeVerifier:
@@ -72,7 +72,7 @@ def test_invalid_unsupported_and_conflicting_claims_are_never_rendered():
         hit("c2", "The opposite feature policy says the feature is disabled."),
     ]
     draft = StructuredDraft(answerable=True, claims=[
-        DraftClaim(text="The feature is enabled.", cited_chunk_ids=["c1"]),
+        DraftClaim(text="The feature remains enabled.", cited_chunk_ids=["c1"]),
         DraftClaim(text="Unknown assertion.", cited_chunk_ids=["c1"]),
         DraftClaim(text="A fabricated claim.", cited_chunk_ids=["missing"]),
     ])
@@ -103,7 +103,7 @@ def test_claim_relevant_evidence_sentence_is_selected_for_nli_and_display():
     assert "RRF combines dense and BM25 with constant 60." in premise
 
 
-def test_verifier_failure_only_allows_exact_extractive_claims():
+def test_verifier_failure_allows_any_exact_conflict_free_cited_claim():
     retrieved = [hit("c1", "This exact sentence is evidence.")]
     extractive = build_extractive_draft(retrieved)
     extractive_result = verify_claims(extractive, retrieved, BrokenVerifier()).result
@@ -113,8 +113,8 @@ def test_verifier_failure_only_allows_exact_extractive_claims():
         text="This exact sentence is evidence.", cited_chunk_ids=["c1"], provenance="generated"
     )])
     generated_result = verify_claims(generated, retrieved, BrokenVerifier()).result
-    assert generated_result.status == "verification_unavailable"
-    assert "VERIFIER_UNAVAILABLE" in generated_result.rejected_claims[0].reason_codes
+    assert generated_result.status == "verified"
+    assert "EXACT_EVIDENCE_MATCH" in generated_result.accepted_claims[0].reason_codes
 
 
 def test_offline_qa_returns_only_verified_extractive_claims(tmp_path):
@@ -138,6 +138,54 @@ def test_question_aware_extractive_answer_selects_the_relevant_sentence():
     )
     assert "400 days" in output["answer"]
     assert "seven years" not in output["answer"]
+
+
+@pytest.mark.parametrize(("question", "text", "expected"), [
+    (
+        "How long are audit events retained under Aegis?",
+        "Aegis current matrix. Audit events are retained for 400 days. The old period was 90 days.",
+        "400 days",
+    ),
+    (
+        "What incident ID investigated Meridian clock skew?",
+        "Meridian Incident AU-4012. Incident ID ID-2026-014. The gateway clock drifted seven minutes.",
+        "ID-2026-014",
+    ),
+    (
+        "Which incident ID retained two obsolete chunks after a handbook rename?",
+        "Lifecycle incident. Incident ID KG-2026-194. A renamed handbook retained two obsolete chunks.",
+        "KG-2026-194",
+    ),
+    (
+        "How long may temporary upload artifacts remain?",
+        "Current retention matrix. Temporary upload artifacts remain for 24 hours.",
+        "24 hours",
+    ),
+])
+def test_query_aware_regressions_select_identifiers_and_retention(question, text, expected):
+    draft = build_extractive_draft([hit("c1", text)], max_claims=1, question=question)
+    assert draft.answerable
+    assert expected in draft.claims[0].text
+
+
+def test_query_aware_backup_regression_selects_region_and_recovery_duration():
+    text = (
+        "Harbor backup incident. A restore drill exposed an expired encryption grant on the "
+        "us-east-2 backup copy. Renewing the grant restored access in 43 minutes."
+    )
+    draft = build_extractive_draft(
+        [hit("c1", text)], max_claims=2,
+        question="Which backup region had an expired grant and how long did recovery take?",
+    )
+    answer = " ".join(claim.text for claim in draft.claims)
+    assert "us-east-2" in answer
+    assert "43 minutes" in answer
+
+
+def test_extractive_answer_uses_the_question_instead_of_the_first_sentence():
+    text = "Aegis retention policy. Audit events are retained for 400 days."
+    answer = extractive_answer("How long are audit events retained?", [hit("c1", text)])
+    assert "400 days" in answer
 
 
 class FakeGeminiModels:

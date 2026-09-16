@@ -3,6 +3,7 @@ name: Quality
 on:
   push:
   pull_request:
+    branches: [main]
 
 jobs:
   test:
@@ -28,3 +29,22 @@ jobs:
           --cov=backend.security
           --cov=backend.database
           --cov-fail-under=90
+      - name: Validate public release configuration and documentation
+        run: |
+          python scripts/validate_public_release.py
+          python scripts/validate_docs.py
+      - name: Build the zero-model public index
+        env:
+          LOW_MEMORY_DEMO: "true"
+          SECURITY_MODE: demo
+          PUBLIC_GEMINI_ENABLED: "false"
+        run: python scripts/build_demo_index.py
+      - name: Public API and UI smoke
+        env:
+          LOW_MEMORY_DEMO: "true"
+          SECURITY_MODE: demo
+          PUBLIC_GEMINI_ENABLED: "false"
+          GEMINI_API_KEY: ""
+        run: |
+          python scripts/smoke_public_api.py
+          python scripts/smoke_public_ui.py

@@ -13,6 +13,7 @@ from .vectorstore import FaissStore
 from .config import SETTINGS
 from .reranker import Reranker, get_default_reranker
 from .security_models import PUBLIC_ORGANIZATION_ID, RetrievalScope, SecurityBoundaryError
+from .observability import span
 
 RetrievalStrategy = Literal["lexical", "dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank"]
 VALID_STRATEGIES = ("lexical", "dense", "dense_mmr", "hybrid_rrf", "hybrid_rerank")
@@ -29,6 +30,7 @@ BM25_QUERY_ALIASES = {
     "period": ("duration",),
 }
 HISTORICAL_INTENT = {"former", "historical", "incident", "legacy", "old", "obsolete", "previous", "retired"}
+CURRENT_INTENT = {"current", "currently", "now", "today"}
 HISTORICAL_MARKERS = ("status: obsolete", "retired", "legacy")
 
 
@@ -131,7 +133,10 @@ def _lexical_candidates(items: Sequence[Dict[str, Any]], query: str, candidate_c
     if not corpus or not query_tokens or not any(corpus):
         return []
     scores = BM25Okapi(corpus).get_scores(query_tokens)
-    historical_query = bool(set(query_tokens) & HISTORICAL_INTENT)
+    query_terms = set(query_tokens)
+    # A contrast such as "current rather than obsolete" asks for the active policy,
+    # even though the query necessarily mentions an historical marker.
+    historical_query = bool(query_terms & HISTORICAL_INTENT) and not bool(query_terms & CURRENT_INTENT)
 
     def adjusted_score(index: int) -> float:
         matched_terms = len(set(query_tokens) & set(corpus[index]))
@@ -143,6 +148,17 @@ def _lexical_candidates(items: Sequence[Dict[str, Any]], query: str, candidate_c
 
     ranked = sorted(range(len(items)), key=lambda index: (-adjusted_score(index), index))
     return [(adjusted_score(index), items[index]) for index in ranked[:candidate_count] if adjusted_score(index) > 0.0]
+
+
+def _obsolete_for_query(query: str, item: Dict[str, Any]) -> bool:
+    """Identify lifecycle-stale evidence unless the visitor explicitly asks for history."""
+    query_terms = set(tokenize_for_bm25(query))
+    historical_query = bool(query_terms & HISTORICAL_INTENT) and not bool(query_terms & CURRENT_INTENT)
+    if historical_query:
+        return False
+    source_version = str(item.get("source_version", "")).casefold()
+    text = str(item.get("retrieval_text", item.get("text", ""))).casefold()
+    return source_version in {"legacy", "obsolete", "retired"} or any(marker in text for marker in HISTORICAL_MARKERS)
 
 
 def validate_store_scope(store: FaissStore, scope: RetrievalScope) -> None:
@@ -183,14 +199,16 @@ def retrieve(
     dense_latency = 0.0
     if strategy != "lexical":
         dense_started = time.perf_counter()
-        _, dense = _dense_candidates(store, embedder, normalized_query, candidate_count)
+        with span("rag.retrieval.dense", {"rag.candidate_count": candidate_count}):
+            _, dense = _dense_candidates(store, embedder, normalized_query, candidate_count)
         dense_latency = (time.perf_counter() - dense_started) * 1000
     lexical_latency = fusion_latency = reranking_latency = 0.0
     reranking_trace: List[Dict[str, Any]] = []
 
     if strategy == "lexical":
         lexical_started = time.perf_counter()
-        lexical = _lexical_candidates(store.meta["items"], normalized_query, candidate_count)
+        with span("rag.retrieval.lexical", {"rag.candidate_count": candidate_count}):
+            lexical = _lexical_candidates(store.meta["items"], normalized_query, candidate_count)
         lexical_latency = (time.perf_counter() - lexical_started) * 1000
         hits = [
             RetrievalHit(
@@ -216,12 +234,14 @@ def retrieve(
             ]
     else:
         lexical_started = time.perf_counter()
-        lexical = _lexical_candidates(store.meta["items"], normalized_query, candidate_count)
+        with span("rag.retrieval.lexical", {"rag.candidate_count": candidate_count}):
+            lexical = _lexical_candidates(store.meta["items"], normalized_query, candidate_count)
         lexical_latency = (time.perf_counter() - lexical_started) * 1000
         dense_ranking = [(item["chunk_id"], score) for score, item in dense]
         lexical_ranking = [(item["chunk_id"], score) for score, item in lexical]
         fusion_started = time.perf_counter()
-        fused = reciprocal_rank_fusion((("dense", dense_ranking), ("lexical", lexical_ranking)))
+        with span("rag.retrieval.fusion", {"rag.candidate_count": candidate_count}):
+            fused = reciprocal_rank_fusion((("dense", dense_ranking), ("lexical", lexical_ranking)))
         fusion_latency = (time.perf_counter() - fusion_started) * 1000
         items_by_id = {item["chunk_id"]: item for item in store.meta["items"]}
         fused_rows = fused
@@ -233,15 +253,26 @@ def retrieve(
                 SETTINGS.reranker_model, SETTINGS.rerank_batch_size
             )
             rerank_started = time.perf_counter()
-            scores = active_reranker.score(
-                normalized_query, [items_by_id[chunk_id]["text"] for chunk_id, _, _ in rerank_pool]
-            )
+            with span("rag.retrieval.rerank", {"rag.rerank.candidate_count": len(rerank_pool)}):
+                scores = active_reranker.score(
+                    normalized_query, [items_by_id[chunk_id]["text"] for chunk_id, _, _ in rerank_pool]
+                )
             reranking_latency = (time.perf_counter() - rerank_started) * 1000
             if len(scores) != len(rerank_pool):
                 raise ValueError("Reranker returned a different number of scores than candidate documents.")
             scored = [(*row, float(score_value)) for row, score_value in zip(rerank_pool, scores)]
-            # Python's stable sort preserves the fused ranking when scores tie.
-            fused_rows = sorted(scored, key=lambda row: -row[3])
+            # Cross-encoders can overvalue a stale passage when a contrastive question
+            # quotes both the current and obsolete values. Corpus lifecycle metadata is
+            # a deterministic authority: keep obsolete evidence behind active evidence
+            # unless the question explicitly asks for historical/incident information.
+            # Python's stable sort preserves the fused ranking when both keys tie.
+            fused_rows = sorted(
+                scored,
+                key=lambda row: (
+                    _obsolete_for_query(normalized_query, items_by_id[row[0]]),
+                    -row[3],
+                ),
+            )
             reranker_scores = {chunk_id: (rank, score) for rank, (chunk_id, _, _, score) in enumerate(fused_rows, 1)}
             fusion_positions = {chunk_id: rank for rank, (chunk_id, _, _) in enumerate(fused, 1)}
             reranking_trace = [
@@ -251,6 +282,7 @@ def retrieve(
                     "fusion_score": fusion_score,
                     "reranker_rank": rank,
                     "reranker_score": reranker_score,
+                    "obsolete_for_query": _obsolete_for_query(normalized_query, items_by_id[chunk_id]),
                     "movement": fusion_positions[chunk_id] - rank,
                 }
                 for rank, (chunk_id, fusion_score, _, reranker_score) in enumerate(fused_rows, 1)

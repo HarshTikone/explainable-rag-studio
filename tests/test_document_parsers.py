@@ -1,4 +1,6 @@
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 
 import fitz
 import pytest
@@ -93,9 +95,14 @@ def test_ocr_adapter_supports_executable_and_wraps_failures(monkeypatch):
             assert options == {"dpi": 200, "alpha": False}
             return Pixmap()
 
-    monkeypatch.setattr("pytesseract.image_to_string", lambda _image: "recognized")
+    pytesseract = SimpleNamespace(
+        image_to_string=lambda _image: "recognized",
+        pytesseract=SimpleNamespace(tesseract_cmd="tesseract"),
+    )
+    monkeypatch.setitem(sys.modules, "pytesseract", pytesseract)
     assert _ocr_page(Page(), "custom-tesseract") == "recognized"
-    monkeypatch.setattr("pytesseract.image_to_string", lambda _image: (_ for _ in ()).throw(RuntimeError("bad OCR")))
+    assert pytesseract.pytesseract.tesseract_cmd == "custom-tesseract"
+    pytesseract.image_to_string = lambda _image: (_ for _ in ()).throw(RuntimeError("bad OCR"))
     with pytest.raises(DocumentParseError) as error:
         _ocr_page(Page(), None)
     assert error.value.code == "OCR_UNAVAILABLE"

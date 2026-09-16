@@ -25,7 +25,25 @@ def tenant_manager() -> TenantStoreManager:
     return TenantStoreManager(SETTINGS.tenant_index_root, SETTINGS.tenant_store_cache_size)
 
 
+@st.cache_resource
+def public_store() -> FaissStore:
+    value = FaissStore(SETTINGS.index_dir)
+    value.load()
+    return value
+
+
 def security_context(scope: str | None = None, *, allow_anonymous: bool = False) -> SecurityContext:
+    raw_key = ""
+    if SETTINGS.low_memory_demo and allow_anonymous:
+        context = SecurityContext(
+            SETTINGS.public_organization_id, "anonymous_demo", "viewer", None,
+            ROLE_SCOPES["viewer"], True,
+        )
+        if scope:
+            context.require(scope)
+        with st.sidebar:
+            st.caption("Public read-only demo")
+        return context
     with st.sidebar:
         st.markdown("### Workspace access")
         raw_key = st.text_input("API key", type="password", key="security_api_key", help="Kept only in this browser session.")
@@ -82,6 +100,8 @@ def security_context(scope: str | None = None, *, allow_anonymous: bool = False)
 def tenant_store(context: SecurityContext) -> FaissStore:
     if SETTINGS.platform_mode == "postgres":
         raise RuntimeError("Production Streamlit pages must use RagApiClient instead of direct storage access.")
+    if SETTINGS.low_memory_demo and context.organization_id == SETTINGS.public_organization_id:
+        return public_store()
     value = tenant_manager().get(context.organization_id, reload=True)
     if value.index is None and context.organization_id == SETTINGS.public_organization_id:
         value = FaissStore(SETTINGS.index_dir)

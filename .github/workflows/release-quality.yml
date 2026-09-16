@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   release:
@@ -39,6 +41,16 @@ jobs:
           --cov=backend.security
           --cov=backend.database
           --cov-fail-under=90
+      - name: Validate public release configuration and documentation
+        run: |
+          python scripts/validate_public_release.py
+          python scripts/validate_docs.py
+      - name: Public 512 MB image smoke
+        run: |
+          docker build --build-arg PREFETCH_MODELS=false --build-arg BUILD_DEMO_INDEX=true --build-arg LOW_MEMORY_DEMO=true -t explainable-rag-public:${{ github.sha }} .
+          docker run --rm --memory=512m --memory-swap=512m -e LOW_MEMORY_DEMO=true -e SECURITY_MODE=demo -e PUBLIC_GEMINI_ENABLED=false -e GEMINI_API_KEY= -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 explainable-rag-public:${{ github.sha }} python scripts/smoke_public_demo.py
+          docker run --rm --memory=512m --memory-swap=512m -e LOW_MEMORY_DEMO=true -e SECURITY_MODE=demo -e PUBLIC_GEMINI_ENABLED=false -e GEMINI_API_KEY= -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 explainable-rag-public:${{ github.sha }} python scripts/smoke_public_api.py
+          docker run --rm --memory=512m --memory-swap=512m -e LOW_MEMORY_DEMO=true -e SECURITY_MODE=demo -e PUBLIC_GEMINI_ENABLED=false -e GEMINI_API_KEY= -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 explainable-rag-public:${{ github.sha }} python scripts/smoke_public_ui.py
       - name: Real-model smoke tests
         env:
           RUN_RERANKER_SMOKE: "1"

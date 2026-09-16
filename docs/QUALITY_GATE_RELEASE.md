@@ -22,7 +22,10 @@ python scripts/run_release_validation.py
 python scripts/run_release_validation.py --validate outputs/releases/<release_id>
 ```
 
-The complete run builds an isolated 60-card FAISS index, compares hybrid RRF with reranking at `top_k=5`, locks the retained retrieval strategy, compares grounding policies from cached inputs, evaluates the sealed claim benchmark, and writes `outputs/releases/<release_id>/quality_gate.json`.
+The complete run builds an isolated 60-card FAISS index, evaluates the 112-question QA benchmark
+(25 unanswerable; 22.3%), compares hybrid RRF with reranking at `top_k=5`, locks the retained
+retrieval strategy, compares grounding policies from cached inputs, evaluates the sealed claim
+benchmark, and writes `outputs/releases/<release_id>/quality_gate.json`.
 
 ## Retained evidence
 
@@ -30,13 +33,18 @@ Each release directory contains the source, corpus, benchmark, retrieval, draft-
 
 No performance claim should be copied into the roadmap or portfolio unless it appears in a validated retained artifact.
 
-## Current retained result
+## Current decision
 
-Local release `20260901T230637Z` validated successfully as an artifact and closed every decision:
+The QA-remediation candidate's complete local diagnostic (`20260916T060948Z`) cleared both model
+quality decisions without changing labels or gates: `hybrid_rerank` improved MRR by 0.0379 and
+nDCG@5 by 0.0349 while staying inside the recall budget; grounding measured macro F1 0.8851,
+supported precision 1.00, contradiction recall 1.00, zero unsupported exposure, and zero
+answer/abstention regression. This is diagnostic evidence, not the retained release: the host used
+Python 3.12 and could not execute Docker, so runtime remained rejected. Python 3.11 CI must rerun
+the complete workflow, promote runtime/security, and produce the committed artifact before the
+live service changes.
 
-- Reranking was rejected despite improving Recall@5, MRR, and nDCG@5 because candidate retrieval p95 was 1980.75 ms.
-- Grounding was rejected because held-out macro F1 was 0.6858, contradiction recall was 0.8125, answer regressions exceeded their budgets, and verification p95 was 1538.63 ms.
-- Citation validity, displayed claim-citation coverage, unsupported-claim exposure, and answer coverage passed.
-- Runtime was rejected because this host uses Python 3.12 and has no Docker installation; the manual Python 3.11 workflow is the authoritative remaining runtime check.
-
-The generated machine-readable summary is `docs/benchmarks/quality-gate-reference.json`. No improvement is claimed.
+`docs/benchmarks/quality-gate-reference.json` is the committed machine-readable artifact rendered
+by the Results page. A new release must regenerate and validate that artifact before any newer
+numbers are called retained evidence; this document never turns a local diagnostic into a retained
+promotion.

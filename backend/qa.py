@@ -6,7 +6,7 @@ from .retriever import RetrievalResult
 from .grounding import (
     build_extractive_draft,
     citations_from_grounding,
-    generate_structured_draft,
+    generate_structured_draft_with_response,
     grounding_config_fingerprint,
     render_grounded_answer,
     verify_claims,
@@ -14,6 +14,9 @@ from .grounding import (
 from .review_registry import ReviewRegistry
 from .config import SETTINGS
 from .grounding_policy import GroundingPolicy
+from .grounding_models import StructuredDraft
+from .generation_usage import usage_from_response
+from .observability import set_span_attributes, span
 
 def _legacy_items(retrieved_items):
     return retrieved_items.as_legacy() if isinstance(retrieved_items, RetrievalResult) else retrieved_items
@@ -24,7 +27,7 @@ def extractive_answer(question: str, retrieved_items) -> str:
     Non-LLM fallback: returns the most relevant chunk excerpt.
     Keeps the app usable even without an API key.
     """
-    draft = build_extractive_draft(retrieved_items)
+    draft = build_extractive_draft(retrieved_items, question=question)
     return " ".join(claim.text for claim in draft.claims) or "I don't know."
 
 def answer_with_optional_llm(
@@ -38,6 +41,8 @@ def answer_with_optional_llm(
     persist_review: bool = True,
     grounding_policy: GroundingPolicy | None = None,
     extractive_max_claims: int = 3,
+    draft_override: StructuredDraft | None = None,
+    semantic_scorer=None,
 ) -> Dict[str, Any]:
     """
     Returns:
@@ -51,19 +56,50 @@ def answer_with_optional_llm(
     legacy = _legacy_items(retrieved_items)
     retrieved = [it for _, it in legacy]
     context = build_context(retrieved)
+    generation = {
+        "mode": "exact_extractive_fallback", "provider": "local",
+        "model": "deterministic-extractive", "fallback_used": True,
+        "fallback_reason": "gemini_not_requested",
+        "usage": usage_from_response(None),
+    }
 
-    if not legacy:
+    if draft_override is not None:
+        draft = draft_override
+        generation["fallback_reason"] = "draft_override"
+    elif not legacy:
         draft = build_extractive_draft([], max_claims=extractive_max_claims, question=question)
     elif use_gemini and gemini_client is not None:
         try:
-            draft = generate_structured_draft(question, retrieved_items, gemini_client, gemini_model)
+            with span("rag.generate", {
+                "gen_ai.system": "google", "gen_ai.request.model": gemini_model,
+                "rag.generation.mode": "structured",
+            }) as generation_span:
+                draft, response = generate_structured_draft_with_response(
+                    question, retrieved_items, gemini_client, gemini_model
+                )
+                usage = usage_from_response(response)
+                set_span_attributes(generation_span, {
+                    "gen_ai.usage.input_tokens": usage["input_tokens"],
+                    "gen_ai.usage.output_tokens": usage["output_tokens"],
+                    "gen_ai.usage.cached_tokens": usage["cached_tokens"],
+                })
+            generation = {
+                "mode": "gemini_structured", "provider": "google", "model": gemini_model,
+                "fallback_used": False, "fallback_reason": "",
+                "usage": usage,
+            }
         except Exception:
             draft = build_extractive_draft(retrieved_items, max_claims=extractive_max_claims, question=question)
+            generation["fallback_reason"] = "provider_or_validation_error"
     else:
         draft = build_extractive_draft(retrieved_items, max_claims=extractive_max_claims, question=question)
     claim_generation_ms = (time.perf_counter() - generation_started) * 1000
 
-    verification = verify_claims(draft, retrieved_items, verifier=verifier, policy=grounding_policy).result
+    with span("rag.verify", {"rag.verifier.mode": getattr(verifier, "model_name", "default")}):
+        verification = verify_claims(
+            draft, retrieved_items, verifier=verifier, policy=grounding_policy,
+            semantic_scorer=semantic_scorer,
+        ).result
     verification.latency_ms["claim_generation"] = claim_generation_ms
     verification.latency_ms.setdefault("citation_validation", 0.0)
     verification.latency_ms.setdefault("conflict_scan", 0.0)
@@ -86,4 +122,5 @@ def answer_with_optional_llm(
         "citations": citations,
         "context": context,
         "grounding": verification.model_dump(),
+        "generation": generation,
     }
