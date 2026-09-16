@@ -11,7 +11,7 @@ case "${1:-}" in
     exec uvicorn api:app --host 0.0.0.0 --port 8000
     ;;
   streamlit)
-    exec streamlit run app/Home.py --server.address=0.0.0.0 --server.port=8501
+    exec streamlit run app/Home.py --server.address=0.0.0.0 --server.port="${PORT:-8501}"
     ;;
   worker)
     exec rq worker ingestion --url "$REDIS_URL" --with-scheduler
