@@ -21,7 +21,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
-RUN if [ "$PREFETCH_MODELS" = "true" ]; then python scripts/prefetch_models.py; fi
+RUN if [ "$PREFETCH_MODELS" = "true" ]; then \
+        python scripts/prefetch_models.py && \
+        python scripts/build_demo_index.py; \
+    fi
 RUN addgroup --system rag && adduser --system --ingroup rag --home /app rag && chown -R rag:rag /app
 USER rag
 EXPOSE 8000 8501

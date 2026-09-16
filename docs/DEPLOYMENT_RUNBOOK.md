@@ -123,10 +123,10 @@ exactly this use case.
    deploy (`render.yaml` deliberately leaves it as `sync: false` — never commit a real key).
    Optional: without it, claim generation falls back to the deterministic extractive mode
    (`docs/CLAIM_LEVEL_GROUNDING.md`) and the demo still fully works.
-4. The free Blueprint deliberately has no persistent disk, so local index data is ephemeral.
-   Build the bundled public demo index into the image or load it with a temporary authenticated
-   operator key before public testing; expect to rebuild it after any deployment that replaces the
-   instance filesystem. Anonymous `viewer` access cannot ingest documents.
+4. The free Blueprint deliberately has no persistent disk. The Docker build therefore runs
+   `scripts/build_demo_index.py` and bakes the bundled public demo index into the image alongside
+   the model cache. Every fresh instance starts query-ready, while anonymous `viewer` access
+   remains unable to ingest or modify documents.
 5. Link the live URL from `README.md`'s demo section, and from
    `docs/DEMO_WALKTHROUGH_SCRIPT.md` once that's recorded against the live instance.
 
