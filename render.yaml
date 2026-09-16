@@ -4,16 +4,14 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    # Prefetch models into the image at build time rather than lazily on first
-    # request -- avoids a slow, cold first query for the first visitor after
-    # every deploy/restart, and avoids re-downloading them from an ephemeral
-    # container's disk on every restart.
-    dockerBuildArgs:
-      PREFETCH_MODELS: "true"
     plan: standard
-    port: 8501
     healthCheckPath: /_stcore/health
     envVars:
+      # Render exposes service environment variables to Docker builds as build
+      # arguments. Dockerfile's matching ARG therefore prefetches the models
+      # into the image instead of downloading them on the first live query.
+      - key: PREFETCH_MODELS
+        value: "true"
       # Legacy profile: local FAISS/SQLite, no Postgres/Redis/MinIO/Keycloak stack.
       # This is the public, sanitized, single-process demo profile -- not the
       # multi-tenant production platform in docker-compose.yml.
