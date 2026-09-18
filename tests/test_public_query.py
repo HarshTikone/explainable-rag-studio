@@ -7,7 +7,12 @@ from backend import demo_budget, query_service
 from backend.demo_budget import DemoGeminiBudget
 from backend.generation_usage import generation_badge, usage_from_response
 from backend.grounding import generate_public_exact_draft
-from backend.grounding_models import DraftClaim, StructuredDraft
+from backend.grounding_models import (
+    DraftClaim,
+    EvidenceSelection,
+    PublicEvidenceDraft,
+    StructuredDraft,
+)
 from backend.review_registry import ReviewRegistry
 from backend.security_models import RetrievalScope
 
@@ -32,8 +37,8 @@ def test_generation_badges_distinguish_provider_and_quota_fallbacks():
 
 
 def test_public_gemini_requires_verbatim_retrieved_evidence():
-    exact = StructuredDraft(answerable=True, claims=[DraftClaim(
-        text="Audit events are retained for 400 days.", cited_chunk_ids=["c1"]
+    exact = PublicEvidenceDraft(answerable=True, selections=[EvidenceSelection(
+        chunk_id="c1", sentence_index=0,
     )])
     response = SimpleNamespace(parsed=exact, usage_metadata=SimpleNamespace(
         prompt_token_count=20, candidates_token_count=8, total_token_count=28,
@@ -46,32 +51,32 @@ def test_public_gemini_requires_verbatim_retrieved_evidence():
     assert draft.claims[0].provenance == "extractive"
     assert usage_from_response(raw)["total_tokens"] == 28
 
-    paraphrase = StructuredDraft(answerable=True, claims=[DraftClaim(
-        text="The retention period is four hundred days.", cited_chunk_ids=["c1"]
+    unknown_chunk = PublicEvidenceDraft(answerable=True, selections=[EvidenceSelection(
+        chunk_id="missing", sentence_index=0,
     )])
-    client.models.generate_content = lambda **_kwargs: SimpleNamespace(parsed=paraphrase)
-    with pytest.raises(ValueError, match="not exact"):
+    client.models.generate_content = lambda **_kwargs: SimpleNamespace(parsed=unknown_chunk)
+    with pytest.raises(ValueError, match="not retrieved"):
         generate_public_exact_draft("How long?", [(1.0, item())], client, "gemini-test")
 
-    combined = StructuredDraft(answerable=True, claims=[DraftClaim(
-        text="First sentence. Second sentence.", cited_chunk_ids=["c1"]
+    invalid_index = PublicEvidenceDraft(answerable=True, selections=[EvidenceSelection(
+        chunk_id="c1", sentence_index=2,
     )])
-    client.models.generate_content = lambda **_kwargs: SimpleNamespace(parsed=combined)
-    with pytest.raises(ValueError, match="not exact"):
+    client.models.generate_content = lambda **_kwargs: SimpleNamespace(parsed=invalid_index)
+    with pytest.raises(ValueError, match="outside"):
         generate_public_exact_draft(
             "Question?", [(1.0, item("First sentence. Second sentence."))], client, "gemini-test"
         )
 
-    too_many = StructuredDraft(answerable=True, claims=[
-        DraftClaim(text="One sentence.", cited_chunk_ids=["c1"]),
-        DraftClaim(text="Two sentence.", cited_chunk_ids=["c1"]),
-        DraftClaim(text="Three sentence.", cited_chunk_ids=["c1"]),
+    two = PublicEvidenceDraft(answerable=True, selections=[
+        EvidenceSelection(chunk_id="c1", sentence_index=0),
+        EvidenceSelection(chunk_id="c1", sentence_index=1),
     ])
-    client.models.generate_content = lambda **_kwargs: SimpleNamespace(parsed=too_many)
-    with pytest.raises(ValueError, match="claim limit"):
+    client.models.generate_content = lambda **_kwargs: SimpleNamespace(parsed=two)
+    with pytest.raises(ValueError, match="selection limit"):
         generate_public_exact_draft(
             "Question?", [(1.0, item("One sentence. Two sentence. Three sentence."))],
             client, "gemini-test",
+            max_claims=1,
         )
 
 
@@ -175,8 +180,8 @@ def test_public_query_gemini_success_and_invalid_response_fallback(tmp_path, mon
     store = SimpleNamespace(meta={"items": [item()]})
     scope = RetrievalScope("org_public", "anonymous_demo", "test")
     reviews = ReviewRegistry(str(tmp_path / "reviews.db"))
-    exact = StructuredDraft(answerable=True, claims=[DraftClaim(
-        text="Audit events are retained for 400 days.", cited_chunk_ids=["c1"]
+    exact = PublicEvidenceDraft(answerable=True, selections=[EvidenceSelection(
+        chunk_id="c1", sentence_index=0,
     )])
     response = SimpleNamespace(parsed=exact, usage_metadata=SimpleNamespace(
         prompt_token_count=20, candidates_token_count=8, total_token_count=28,
@@ -191,20 +196,22 @@ def test_public_query_gemini_success_and_invalid_response_fallback(tmp_path, mon
     assert result["generation"]["mode"] == "gemini_assisted_exact_evidence"
     assert result["generation"]["usage"]["total_tokens"] == 28
 
-    invalid = StructuredDraft(answerable=True, claims=[DraftClaim(
-        text="Retention lasts four hundred days.", cited_chunk_ids=["c1"]
+    invalid = PublicEvidenceDraft(answerable=True, selections=[EvidenceSelection(
+        chunk_id="c1", sentence_index=99,
     )])
     invalid_client = SimpleNamespace(models=SimpleNamespace(
         generate_content=lambda **_kwargs: SimpleNamespace(parsed=invalid)
     ))
+    invalid_budget = DemoGeminiBudget(str(tmp_path / "invalid.db"))
     fallback = query_service.run_query(
         store=store, question="How long are audit events retained?", top_k=3,
         strategy="lexical", scope=scope, review_registry=reviews,
         client_key="invalid", gemini_client=invalid_client,
-        budget=DemoGeminiBudget(str(tmp_path / "invalid.db")),
+        budget=invalid_budget,
     )
     assert fallback["generation"]["mode"] == "exact_extractive_fallback"
-    assert fallback["generation"]["fallback_reason"] == "provider_or_validation_error"
+    assert fallback["generation"]["fallback_reason"] == "invalid_provider_response"
+    assert invalid_budget.reserve("after-invalid").allowed
 
 
 @pytest.mark.parametrize(("error", "expected"), [
