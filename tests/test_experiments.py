@@ -1,3 +1,4 @@
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 
@@ -21,6 +22,26 @@ def test_fingerprints_are_stable_for_normalized_corpus():
     assert corpus_fingerprint(CORPUS) == corpus_fingerprint(equivalent)
     assert benchmark_fingerprint(BENCHMARK) == benchmark_fingerprint(list(BENCHMARK))
     assert "source_tree_fingerprint" in source_tree_state()
+
+
+def test_source_tree_fingerprint_ignores_generated_quality_reference(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    source = tmp_path / "backend" / "module.py"
+    reference = tmp_path / "docs" / "benchmarks" / "quality-gate-reference.json"
+    source.parent.mkdir(parents=True)
+    reference.parent.mkdir(parents=True)
+    source.write_text("VALUE = 1\n", encoding="utf-8")
+    reference.write_text('{"overall": false}\n', encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+
+    before = source_tree_state(str(tmp_path))["source_tree_fingerprint"]
+    reference.write_text('{"overall": true}\n', encoding="utf-8")
+    after_reference_change = source_tree_state(str(tmp_path))["source_tree_fingerprint"]
+    source.write_text("VALUE = 2\n", encoding="utf-8")
+    after_source_change = source_tree_state(str(tmp_path))["source_tree_fingerprint"]
+
+    assert after_reference_change == before
+    assert after_source_change != before
 
 
 def test_experiment_id_and_artifacts(tmp_path):

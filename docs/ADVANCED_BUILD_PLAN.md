@@ -90,15 +90,15 @@ Exit gate: unsupported claims are flagged before display and citation validity r
 
 Duration: 2 weeks
 
-- ✅ Add users, organizations, corpus ownership, and permission-aware retrieval filters. (`backend/security_models.py` roles/scopes, `backend/tenant_store.py` physically isolated per-organization FAISS stores)
-- ✅ Enforce access filtering inside retrieval rather than after retrieval. (`backend/retriever.py` + `security_models.RetrievalScope`, verified in `tests/test_tenant_isolation.py` across all 4 retrieval strategies)
-- ✅ Validate files, MIME type, size, source trust, and extracted content. (`backend/security_scanner.py`)
-- ✅ Detect instruction-like text and hidden-content anomalies during ingestion. (`backend/security_scanner.py` prompt-injection pattern detection, hidden-HTML/base64-payload detection, quarantine)
-- ✅ Add red-team cases for indirect prompt injection, poisoning, data exfiltration, and tenant leakage. (`tests/test_security_scanner.py`, `tests/test_security.py`, `tests/test_api_security.py`, `tests/test_tenant_isolation.py`)
-- ✅ Add immutable retrieval audit events with safe redaction. (`backend/security.py` / `backend/postgres_security.py`, hash-chained HMAC audit log with `verify_audit_chain`)
-- ✅ Remove personal résumé PDFs and other private material from the public Git history. (confirmed absent via `git log --all --diff-filter=A`; history rewrite documented in `docs/security-history-cleanup.md`)
+- ✅ Add users, organizations, corpus ownership, and permission-aware retrieval filters (`backend/security_models.py` roles/scopes and `backend/tenant_store.py` physically isolated per-organization FAISS stores).
+- ✅ Enforce access filtering inside retrieval rather than after retrieval (`backend/retriever.py` and `security_models.RetrievalScope`), verified in `tests/test_tenant_isolation.py` across all four retrieval strategies.
+- ✅ Validate files, MIME type, size, source trust, and extracted content (`backend/security_scanner.py`).
+- ✅ Detect instruction-like text and hidden-content anomalies during ingestion, including prompt-override, system-prompt-extraction, credential-exfiltration, tool-instruction, hidden-HTML, and base64-payload patterns; quarantine unsafe content (`backend/security_scanner.py`).
+- ✅ Add red-team cases for indirect prompt injection, poisoning, data exfiltration, and tenant leakage (`tests/test_security_scanner.py`, `tests/test_security.py`, `tests/test_api_security.py`, `tests/test_tenant_isolation.py`).
+- ✅ Add immutable retrieval audit events with safe redaction using a hash-chained, HMAC-signed audit log and `verify_audit_chain` (`backend/security.py`, `backend/postgres_security.py`).
+- ✅ Remove personal résumé PDFs and other private material from the public Git history, confirmed absent from `git log --all --diff-filter=A` as of 2026-09-11/12; see `docs/security-history-cleanup.md`.
 
-Exit gate: automated tests prove that no query can retrieve or cite another tenant's document. **Met** — `tests/test_tenant_isolation.py` passes for all 4 retrieval strategies.
+Exit gate: automated tests prove that no query can retrieve or cite another tenant's document. **Met** — `tests/test_tenant_isolation.py` passes for all four retrieval strategies.
 
 ## Milestone 6 — Production platform
 
@@ -106,11 +106,11 @@ Duration: 2 weeks
 
 - ✅ Replace local-only metadata with PostgreSQL and pgvector behind a storage interface; keep FAISS for the lightweight local profile.
 - ✅ Add async ingestion workers, idempotency keys, streaming answers, timeouts, retries, rate limits, authentication, and API versioning.
-- ❌ Instrument parsing, embedding, retrieval, fusion, reranking, generation, and citation verification with OpenTelemetry. Not started — no `opentelemetry-*` dependency exists anywhere in this repo. What does exist is a homegrown, non-OTel latency-tracking system spread across `backend/eval.py`, `backend/experiments.py`, `backend/grounding.py`, `backend/retriever.py`, and `backend/qa.py` (p50/p95/p99 per stage, surfaced on the Streamlit "Latency Dashboard" page) — real, but not what this bullet asked for, and it doesn't cover the rest of the next bullet.
-- ⚠️ Track p50/p95/p99 latency, token usage, cost, cache hit rate, errors, and quality feedback. Latency: done (see above, homegrown). Token usage, cost, and cache hit rate: not tracked anywhere in the codebase. Quality feedback: covered separately by the grounding-review reviewer-label pipeline (`docs/CLAIM_LEVEL_GROUNDING.md`).
+- ✅ Instrument parsing, chunking, embedding, retrieval, fusion, reranking, Gemini generation, grounding verification, and complete queries with OpenTelemetry. OTLP export is opt-in and spans exclude raw questions, prompts, evidence, keys, and user identifiers (`backend/observability.py`).
+- ✅ Track p50/p95/p99 latency, Gemini input/output/cached/total tokens, configurable estimated cost, generation/fallback state, and aggregate context/embedding/verifier cache hits and misses. The public Free profile uses explicit zero-dollar estimate rates; reviewer feedback remains append-only (`backend/telemetry.py`, `backend/generation_usage.py`).
 - ✅ Add database migrations (Alembic, `deploy/postgres/`), backups (`scripts/platform_backup.py`/`restore_validate.py`, exercised in CI), restore documentation, load tests (`scripts/load_test.py`, new this session), and deployment runbooks (`docs/DEPLOYMENT_RUNBOOK.md`, new this session).
 
-Exit gate: the container passes health checks (✅, CI-verified), load targets (⚠️ load test now exists and runs in CI, but is report-only — no promotion threshold has been set, since there's no prior baseline to set a defensible one against), migration tests (✅), and a documented recovery exercise (✅, `docs/DEPLOYMENT_RUNBOOK.md`, backed by real repeated CI verification, not just a written procedure). **Real OpenTelemetry instrumentation and token/cost/cache-hit tracking remain genuinely unimplemented** — this is the honest state, not a checklist formality.
+Exit gate: the container passes health checks (✅, CI-verified), load targets (⚠️ the report runs in CI but still lacks a defensible historical promotion threshold), migration tests (✅), and a documented recovery exercise (✅). OpenTelemetry and token/cost/cache metrics are implemented; the remaining release blocker is the independent grounding gate.
 
 ## Milestone 7 — Portfolio evidence
 
@@ -130,14 +130,18 @@ Duration: 1 week
 - ⏳ Record a short failure-to-fix walkthrough using the same benchmark before and after hybrid
   retrieval. Script written (`docs/DEMO_WALKTHROUGH_SCRIPT.md`); the actual recording needs a
   human at a keyboard, not something this session can produce.
-- ⏳ Publish a live sanitized demo and OpenAPI documentation. Blocked on a hosting decision and
-  credentials — deliberately not guessed at. Owner will provide hosting target and access in a
-  later session; FastAPI already serves OpenAPI docs live at `/docs`/`/openapi.json` once deployed,
-  so this is a deploy-target problem, not a missing-artifact problem.
+- ⚠️ Publish a live sanitized demo and OpenAPI documentation. A Render Free service exists at
+  `https://explainable-rag-studio-demo.onrender.com`; the focused BM25/Gemini exact-evidence release
+  is implemented but must not replace the current live build until its grounding and PR gates pass.
 
 ## Milestone 6.5 — Close the outstanding quality gates (attempted 2026-09-12)
 
-Duration: 2–3 weeks. Genuinely unfinished per `docs/QUALITY_GATE_RELEASE.md`'s retained result: benchmark under target (60 questions/6 categories/16.7% adversarial vs. 100+/20%), reranking rejected on latency (candidate-retrieval p95 1980.75 ms vs. the 1500 ms budget in `backend/experiments.py`), grounding rejected on both quality (held-out macro F1 0.686, contradiction recall 0.8125) and latency (verification p95 1538.63 ms), and the runtime gate never run for real (prior attempts logged Python 3.12 with no Docker).
+Duration: 2–3 weeks. Current state: the benchmark is now 112 questions across six categories with
+22.3% unanswerable coverage. The QA-remediation candidate locally clears retrieval and grounding
+(macro F1 0.8851, supported precision 1.00, contradiction recall 1.00, and zero answer/abstention
+regression), but the final decision remains blocked until the authoritative Python 3.11 Docker and
+security workflow generates a promoted committed artifact. The paragraphs below preserve the
+earlier failure history that led to these fixes.
 
 **This session's attempt hit a different, more specific blocker than the prior "no Docker" note**, worth recording precisely so the next attempt doesn't repeat the diagnosis:
 
@@ -219,6 +223,17 @@ problem that none of the three attempts above targeted. The pattern across all t
 at the model or the guard rules was a dead end; a methodology change that directly targeted a
 diagnosed problem (calibration saturation) produced the only real movement. The same lesson
 likely applies to the accuracy regression — it needs its own diagnosis, not another guess.
+
+### 6.5.5 — QA-remediation candidate (2026-09-16)
+
+The remediation addressed the failure modes directly: question-aware extraction, bounded
+multi-premise verification, calibrated anchor and semantic support, and deterministic lifecycle
+priority for active versus explicitly obsolete evidence. The 112-question local diagnostic then
+promoted `hybrid_rerank` (MRR +0.0379; nDCG@5 +0.0349) and passed every grounding gate (macro F1
+0.8851; supported precision 1.00; contradiction recall 1.00; answer and abstention deltas 0.00).
+This did not edit a held-out label or lower a threshold. The same candidate still reports overall
+rejected locally because Python 3.11, Docker, and security/runtime evidence can only be closed by
+the release workflow; no Render deployment occurs before that retained artifact exists.
 
 ## Recommended implementation order
 

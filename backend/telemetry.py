@@ -33,6 +33,14 @@ def init_db():
         "query_sha256": "TEXT NOT NULL DEFAULT ''",
         "query_length": "INTEGER NOT NULL DEFAULT 0",
         "query_category": "TEXT NOT NULL DEFAULT ''",
+        "generation_mode": "TEXT NOT NULL DEFAULT ''",
+        "generation_fallback_reason": "TEXT NOT NULL DEFAULT ''",
+        "input_tokens": "INTEGER NOT NULL DEFAULT 0",
+        "output_tokens": "INTEGER NOT NULL DEFAULT 0",
+        "cached_tokens": "INTEGER NOT NULL DEFAULT 0",
+        "total_tokens": "INTEGER NOT NULL DEFAULT 0",
+        "estimated_cost_usd": "REAL NOT NULL DEFAULT 0",
+        "pricing_tier": "TEXT NOT NULL DEFAULT ''",
     }
     for column, definition in additions.items():
         if column not in existing:
@@ -48,8 +56,10 @@ def log_run(row: Dict[str, Any]):
     INSERT INTO runs (
         ts_ms, query, top_k, use_mmr, retrieval_ms, generation_ms, total_ms, citations,
         verification_ms, grounding_status, accepted_claims, rejected_claims, conflict_count,
-        organization_id, actor_user_id, query_sha256, query_length, query_category
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        organization_id, actor_user_id, query_sha256, query_length, query_category,
+        generation_mode, generation_fallback_reason, input_tokens, output_tokens,
+        cached_tokens, total_tokens, estimated_cost_usd, pricing_tier
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         row.get("ts_ms", now_ms()),
         "",  # deprecated: never persist raw query text
@@ -69,6 +79,14 @@ def log_run(row: Dict[str, Any]):
         hashlib.sha256(row.get("query", "").encode("utf-8")).hexdigest() if row.get("query") else row.get("query_sha256", ""),
         len(row.get("query", "")) if row.get("query") else row.get("query_length", 0),
         row.get("query_category", ""),
+        row.get("generation_mode", ""),
+        row.get("generation_fallback_reason", ""),
+        row.get("input_tokens", 0),
+        row.get("output_tokens", 0),
+        row.get("cached_tokens", 0),
+        row.get("total_tokens", 0),
+        row.get("estimated_cost_usd", 0.0),
+        row.get("pricing_tier", ""),
     ))
     conn.commit()
     conn.close()
@@ -87,3 +105,45 @@ def fetch_runs(limit: int = 200):
     rows = cur.fetchall()
     conn.close()
     return rows
+
+
+def record_cache_event(cache_name: str, hit: bool) -> None:
+    """Aggregate cache outcomes without storing keys or cached content."""
+    ensure_dir(SETTINGS.outputs_dir)
+    with sqlite3.connect(SETTINGS.runs_db_path) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS cache_metrics (
+                cache_name TEXT PRIMARY KEY,
+                hits INTEGER NOT NULL DEFAULT 0,
+                misses INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        if hit:
+            conn.execute(
+                "INSERT INTO cache_metrics(cache_name, hits) VALUES (?, 1) "
+                "ON CONFLICT(cache_name) DO UPDATE SET hits=hits+1",
+                (cache_name,),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO cache_metrics(cache_name, misses) VALUES (?, 1) "
+                "ON CONFLICT(cache_name) DO UPDATE SET misses=misses+1",
+                (cache_name,),
+            )
+
+
+def fetch_cache_metrics() -> Dict[str, Dict[str, float]]:
+    ensure_dir(SETTINGS.outputs_dir)
+    with sqlite3.connect(SETTINGS.runs_db_path) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS cache_metrics (
+                cache_name TEXT PRIMARY KEY,
+                hits INTEGER NOT NULL DEFAULT 0,
+                misses INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        rows = conn.execute("SELECT cache_name, hits, misses FROM cache_metrics ORDER BY cache_name").fetchall()
+    return {
+        name: {"hits": hits, "misses": misses, "hit_rate": hits / max(1, hits + misses)}
+        for name, hits, misses in rows
+    }

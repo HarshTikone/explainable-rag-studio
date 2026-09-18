@@ -4,6 +4,19 @@
 
 This project demonstrates how to build a **production-style RAG Document Q&A system** using modern NLP techniques. It is designed not only to *work*, but to clearly **explain every step of the RAG pipeline** to recruiters, clients, or non-technical stakeholders through an interactive UI.
 
+## Live public demo
+
+[Open Explainable RAG Studio](https://explainable-rag-studio-demo.onrender.com)
+
+The hosted portfolio profile is deliberately small and zero-cost: **BM25 + Gemini-assisted exact evidence** on Render's free 512 MB plan. Gemini may select at most two verbatim cited evidence sentences; invalid output, timeout, quota, or provider failure automatically uses deterministic extraction. The free instance can take roughly one minute to wake after inactivity.
+
+The public navigation contains only Home, What is RAG, Ask & Explain, and read-only Results. Uploads and administrative workspaces are disabled. The visitor's question and sanitized evidence excerpts may be sent to Free-tier Gemini, so do not enter private information. Raw questions, prompts, evidence text, and IP addresses are not retained in application telemetry.
+
+| Profile | Retrieval | Verification | Intended use |
+|---|---|---|---|
+| Hosted free demo | BM25 | Exact evidence + deterministic guards | Stable public walkthrough under 512 MB |
+| Full platform | `hybrid_rerank` (dense + BM25 + cross-encoder) | Pinned `cross-encoder/nli-deberta-v3-xsmall` + guards | Local/production evaluation, ingestion, security, and operations |
+
 ---
 
 ## 🎥 Demo Video
@@ -94,7 +107,7 @@ Supported claims + evidence + metrics
 
 ## 🖥️ User Interface (Streamlit)
 
-The project includes a **multi-page interactive Streamlit app**:
+The full profile includes a **multi-page interactive Streamlit app**. The hosted public profile exposes only the four visitor-facing pages described above.
 
 ### 1️⃣ What is RAG?
 
@@ -157,7 +170,10 @@ docker compose build
 docker compose up -d
 ```
 
-`hybrid_rrf` and strict safe abstention remain the retained defaults until real Python 3.11 CPU measurements produce promoted reranking and grounding artifacts.
+The full profile retains `hybrid_rerank`. The QA-remediation candidate clears the retrieval and
+grounding gates in a complete local diagnostic; release still requires the authoritative Python
+3.11/Docker/security workflow and a committed promoted artifact. The public 512 MB profile never
+loads the embedding, reranking, or NLI models.
 
 The system supports **reproducible evaluation** using a JSON file:
 
@@ -178,7 +194,7 @@ The evaluator supports the original `expected` phrase format and an advanced sch
 
 Start with `data/eval_set.example.json` and replace its placeholder references with manually verified labels from your corpus.
 
-For a complete reproducible demo, enable **Use bundled sanitized demo corpus** on the ingestion page, build the index with the default chunk settings, then upload `data/public_demo_benchmark.json` on the Evaluation page. Its 60 labeled questions map deterministically to 60 single-chunk knowledge cards. The original six-card corpus remains available under `data/public_demo_small/`.
+For a complete reproducible demo, enable **Use bundled sanitized demo corpus** on the ingestion page, build the index with the default chunk settings, then upload `data/public_demo_benchmark.json` on the Evaluation page. Its **112 labeled questions** span six categories against 60 single-chunk knowledge cards; 25 questions are unanswerable (**22.3%**) to measure safe abstention. The original six-card corpus remains available under `data/public_demo_small/`.
 
 The default Evaluation comparison is `hybrid_rrf` versus `hybrid_rerank`. It writes schema 3.3 manifests with retrieval and grounding policy fingerprints, source-tree and runtime metadata, per-question results, stage latency, category slices, and a portfolio comparison artifact. See [the reranking benchmark methodology](docs/RERANKING_BENCHMARK.md), [the claim-grounding methodology](docs/CLAIM_LEVEL_GROUNDING.md), and [the release quality procedure](docs/QUALITY_GATE_RELEASE.md). Neither reranking nor grounding is claimed as an improvement until a retained CPU run passes its promotion gate.
 
@@ -200,6 +216,9 @@ For every query, the system logs:
 * Generation latency (Gemini)
 * Claim verification latency and accepted/rejected/conflict counts
 * Total end-to-end latency
+* Gemini input, output, cached, and total tokens plus configurable estimated cost
+* Context, embedding, and verifier-token cache hits and misses
+* Privacy-safe OpenTelemetry spans when an OTLP endpoint is explicitly configured
 
 This allows comparison between:
 
@@ -228,8 +247,9 @@ This allows comparison between:
 **Evaluation & Ops**
 
 * JSON-based benchmarks
-* SQLite logging
-* Latency tracking
+* Privacy-safe SQLite metrics (query hashes and lengths, never raw query text)
+* OpenTelemetry spans with opt-in OTLP export
+* Latency, token, configurable cost, and cache-hit tracking
 
 ---
 
@@ -300,7 +320,7 @@ docker build -t explainable-rag-studio .
 docker run --rm -p 8501:8501 -e GEMINI_API_KEY=your_key explainable-rag-studio
 ```
 
-The image installs Tesseract OCR and prefetches the default reranker so deployed instances do not download it on their first reranked query. The container exposes the app on port `8501` and includes a Streamlit health check. On platforms such as Render, Railway, Fly.io, or Cloud Run, deploy the included `Dockerfile`, set `GEMINI_API_KEY` as a secret, and allow the platform to provide `PORT`.
+The image installs Tesseract OCR and exposes the app on port `8501`. Model prefetching is opt-in for the full profile. `render.yaml` builds the sanitized BM25 index into the image, sets `plan: free`, provisions no disk or add-ons, and disables local model downloads. `GEMINI_API_KEY` is an optional dashboard-managed secret from a dedicated unbilled Free-tier project.
 
 Release validation can opt into the real-model smoke test after the model is cached:
 
@@ -321,7 +341,7 @@ python scripts/run_release_validation.py --validate outputs/releases/<release_id
 
 Select `app/Home.py` as the entry point and add `GEMINI_API_KEY` in the app's secret settings. The checked-in `.streamlit/config.toml` supplies the production theme and server configuration.
 
-> Uploaded documents, the FAISS index, and telemetry are currently stored on the local filesystem. Use a persistent volume for a single hosted instance; a multi-instance deployment should move documents, index metadata, and telemetry to shared managed storage.
+> Full-profile uploads, indexes, and local metrics require durable storage. The hosted public demo has no upload path and intentionally uses an image-baked corpus with no paid persistent disk.
 
 ---
 

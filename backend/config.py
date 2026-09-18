@@ -8,6 +8,7 @@ load_dotenv()
 class Settings:
     # production platform (legacy keeps the offline FAISS/SQLite demo readable)
     platform_mode: str = os.getenv("PLATFORM_MODE", "legacy").strip().lower()
+    low_memory_demo: bool = os.getenv("LOW_MEMORY_DEMO", "false").lower() == "true"
     database_url: str = os.getenv("DATABASE_URL", "")
     # Bypasses row-level security for pg_dump/pg_restore; database_url's role
     # (rag_app) is deliberately NOBYPASSRLS and can't produce a complete backup.
@@ -90,6 +91,8 @@ class Settings:
     grounding_prompt_version: str = os.getenv("GROUNDING_PROMPT_VERSION", "1.0")
     grounding_conflict_relevance_threshold: float = float(os.getenv("GROUNDING_CONFLICT_RELEVANCE_THRESHOLD", "0.30"))
     grounding_premise_strategy: str = os.getenv("GROUNDING_PREMISE_STRATEGY", "context_envelope")
+    grounding_anchor_overlap_threshold: float = float(os.getenv("GROUNDING_ANCHOR_OVERLAP_THRESHOLD", "0.65"))
+    grounding_semantic_support_threshold: float = float(os.getenv("GROUNDING_SEMANTIC_SUPPORT_THRESHOLD", "0.80"))
     grounding_backend: str = os.getenv("GROUNDING_BACKEND", "onnx").strip().lower()
     grounding_onnx_file: str = os.getenv("GROUNDING_ONNX_FILE", "onnx/model_quint8_avx2.onnx")
     grounding_fallback_model: str = os.getenv("GROUNDING_FALLBACK_MODEL", "cross-encoder/nli-deberta-v3-small")
@@ -101,6 +104,24 @@ class Settings:
     # Gemini generation
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")  # optional: SDK can also auto-pick from env
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    public_gemini_enabled: bool = os.getenv("PUBLIC_GEMINI_ENABLED", "true").lower() == "true"
+    demo_question_max_chars: int = int(os.getenv("DEMO_QUESTION_MAX_CHARS", "500"))
+    demo_context_max_chars: int = int(os.getenv("DEMO_CONTEXT_MAX_CHARS", "12000"))
+    demo_top_k_max: int = int(os.getenv("DEMO_TOP_K_MAX", "6"))
+    demo_gemini_global_rpm: int = int(os.getenv("DEMO_GEMINI_GLOBAL_RPM", "2"))
+    demo_gemini_global_rpd: int = int(os.getenv("DEMO_GEMINI_GLOBAL_RPD", "20"))
+    demo_gemini_session_rpm: int = int(os.getenv("DEMO_GEMINI_SESSION_RPM", "1"))
+    demo_gemini_session_rpd: int = int(os.getenv("DEMO_GEMINI_SESSION_RPD", "5"))
+    demo_gemini_timeout_seconds: float = float(os.getenv("DEMO_GEMINI_TIMEOUT_SECONDS", "12"))
+    demo_gemini_circuit_seconds: int = int(os.getenv("DEMO_GEMINI_CIRCUIT_SECONDS", "300"))
+    demo_budget_db_path: str = os.getenv("DEMO_BUDGET_DB_PATH", os.path.join("outputs", "demo_budget.db"))
+    genai_input_cost_per_million_usd: float = float(os.getenv("GENAI_INPUT_COST_PER_MILLION_USD", "0"))
+    genai_output_cost_per_million_usd: float = float(os.getenv("GENAI_OUTPUT_COST_PER_MILLION_USD", "0"))
+    genai_pricing_tier: str = os.getenv("GENAI_PRICING_TIER", "free")
+
+    # OpenTelemetry is inert unless an OTLP endpoint is explicitly configured.
+    otel_service_name: str = os.getenv("OTEL_SERVICE_NAME", "explainable-rag-studio")
+    otel_exporter_otlp_endpoint: str = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
 
     # paths
     index_dir: str = "index"

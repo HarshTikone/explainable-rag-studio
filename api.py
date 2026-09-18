@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,7 +11,6 @@ from typing import List, Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, Response, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse
-from google import genai
 
 from backend.config import SETTINGS
 from backend.document_parsers import DocumentParseError
@@ -21,9 +19,7 @@ from backend.grounding import get_default_verifier
 from backend.grounding_policy import default_grounding_policy
 from backend.ingestion import IngestionOptions, IngestionService, IngestionWorker, QuarantinedUpload, parser_capabilities
 from backend.ingestion_registry import IngestionRegistry
-from backend.qa import answer_with_optional_llm
 from backend.reranker import RerankerUnavailableError
-from backend.retriever import retrieve
 from backend.review_registry import ReviewRegistry
 from backend.schemas import ApiKeyCreateRequest, AskRequest, MembershipCreateRequest, MembershipUpdateRequest, OidcIdentityRequest, QuarantineDecisionRequest, ReviewDecisionRequest
 from backend.security import SecurityRegistry
@@ -35,6 +31,7 @@ from backend.platform_runtime import PlatformConfigurationError, get_platform_ru
 from backend.postgres_security import PostgresSecurityRegistry
 from backend.rate_limit import MemoryDemoRateLimiter, RateLimitUnavailable
 from backend.postgres_review import PostgresReviewRegistry
+from backend.query_service import PublicDemoPolicyError, create_gemini_client, run_query
 
 
 platform_runtime = get_platform_runtime()
@@ -48,7 +45,7 @@ store = FaissStore(SETTINGS.index_dir)  # explicit read-only bridge for the lega
 store.load()
 ingestion_registry = IngestionRegistry(SETTINGS.ingestion_db_path, SETTINGS.public_organization_id)  # compatibility
 review_registry = ReviewRegistry(SETTINGS.review_db_path)  # compatibility
-gemini_client = genai.Client(api_key=SETTINGS.gemini_api_key) if SETTINGS.gemini_api_key.strip() else None
+gemini_client = create_gemini_client()
 ingestion_service = IngestionService(ingestion_registry, SETTINGS.index_dir, SETTINGS.uploads_dir, Embedder, gemini_client)
 ingestion_worker = IngestionWorker(ingestion_service, SETTINGS.ingestion_worker_lease_seconds)
 embedder = None
@@ -293,34 +290,43 @@ def ask(req: AskRequest, request: Request = None, context: SecurityContext = Dep
     active_store = store if direct else _store(context)
     if active_store.index is None:
         raise HTTPException(503, "Vector index is not ready for this organization.")
-    started = time.perf_counter()
-    try:
-        found = retrieve(active_store, get_embedder(), req.question, req.top_k, req.retrieval_strategy,
-                         rerank_candidates=req.rerank_candidates,
-                         scope=RetrievalScope.from_context(context, getattr(getattr(request, "state", None), "request_id", "direct")))
-    except SecurityBoundaryError as exc:
-        _audit(context, "retrieval.boundary_violation", "index", context.organization_id, 503, "blocked", "CROSS_TENANT_METADATA")
-        raise HTTPException(503, "The organization index failed its isolation check.") from exc
-    except RerankerUnavailableError as exc:
-        raise HTTPException(503, str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    retrieved_at = time.perf_counter()
-    if any(hit.item.get("organization_id", SETTINGS.public_organization_id) != context.organization_id for hit in found.hits):
-        raise HTTPException(503, "The organization index failed its isolation check.")
     reviews = (
         review_registry if direct else
         PostgresReviewRegistry(platform_runtime.database, context) if platform_runtime else
         _runtime(context)[3]
     )
     try:
-        output = answer_with_optional_llm(req.question, found, bool(gemini_client), gemini_client, SETTINGS.gemini_model, review_registry=reviews)
-    except Exception:
-        output = answer_with_optional_llm(req.question, found, False, None, SETTINGS.gemini_model, review_registry=reviews)
+        output = run_query(
+            store=active_store,
+            question=req.question,
+            top_k=req.top_k,
+            strategy=req.retrieval_strategy,
+            rerank_candidates=req.rerank_candidates,
+            scope=RetrievalScope.from_context(
+                context, getattr(getattr(request, "state", None), "request_id", "direct")
+            ),
+            review_registry=reviews,
+            client_key=context.key_id or context.user_id,
+            gemini_client=gemini_client,
+            embedder_factory=get_embedder,
+            organization_id=context.organization_id,
+            actor_user_id=context.user_id,
+        )
+    except SecurityBoundaryError as exc:
+        _audit(context, "retrieval.boundary_violation", "index", context.organization_id, 503, "blocked", "CROSS_TENANT_METADATA")
+        raise HTTPException(503, "The organization index failed its isolation check.") from exc
+    except RerankerUnavailableError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    except PublicDemoPolicyError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    found = output.pop("retrieval_result")
+    if any(hit.item.get("organization_id", SETTINGS.public_organization_id) != context.organization_id for hit in found.hits):
+        raise HTTPException(503, "The organization index failed its isolation check.")
     allowed = {hit.item.get("chunk_id") for hit in found.hits}
     if any(item.get("chunk_id") not in allowed for item in output.get("citations", [])):
         raise HTTPException(503, "Citation boundary validation failed.")
-    finished = time.perf_counter()
     event = _audit(context, "query.complete", "retrieval", request_id=getattr(getattr(request, "state", None), "request_id", "direct"), details={
         "query_sha256": hashlib.sha256(req.question.encode()).hexdigest(), "query_length": len(req.question),
         "strategy": req.retrieval_strategy, "candidate_count": found.candidate_count, "returned_count": len(found.hits),
@@ -333,15 +339,15 @@ def ask(req: AskRequest, request: Request = None, context: SecurityContext = Dep
                 request_id=getattr(getattr(request, "state", None), "request_id", "direct"),
                 query_sha256=hashlib.sha256(req.question.encode()).hexdigest(), query_length=len(req.question),
                 category="query", metrics_json={"strategy": req.retrieval_strategy,
-                    "retrieval_ms": int((retrieved_at-started)*1000), "total_ms": int((finished-started)*1000),
+                    "retrieval_ms": output["latency_ms"]["retrieval_ms"], "total_ms": output["latency_ms"]["total_ms"],
                     "citation_count": len(output.get("citations", [])),
-                    "grounding_status": output.get("grounding", {}).get("status", "")},
+                    "grounding_status": output.get("grounding", {}).get("status", ""),
+                    "generation": output.get("generation", {})},
             ))
     return {"answer": output["answer"], "citations": output["citations"], "retrieved": [hit.to_dict() for hit in found.hits],
             "grounding": output.get("grounding", {}),
-            "latency_ms": {"retrieval_ms": int((retrieved_at-started)*1000), "generation_ms": int((finished-retrieved_at)*1000),
-                           "verification_ms": int(output.get("grounding", {}).get("latency_ms", {}).get("total_verification", 0)),
-                           "total_ms": int((finished-started)*1000)},
+            "generation": output.get("generation", {}),
+            "latency_ms": output["latency_ms"],
             "security": {"mode": SETTINGS.security_mode, "role": context.role, "organization_isolated": True, "audit_event_id": event}}
 
 

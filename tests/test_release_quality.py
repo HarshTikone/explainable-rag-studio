@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -11,16 +12,15 @@ from backend.release_quality import (
 class FakeEmbedder:
     def embed_texts(self, texts):
         rows = []
-        for index, _text in enumerate(texts):
-            row = np.zeros(8, dtype="float32")
-            row[index % 8] = 1.0
+        for text in texts:
+            digest = hashlib.sha256(text.encode("utf-8")).digest()
+            row = np.frombuffer(digest, dtype=np.uint8).astype("float32") - 127.5
+            row /= np.linalg.norm(row)
             rows.append(row)
         return np.asarray(rows, dtype="float32")
 
     def embed_query(self, text):
-        row = np.zeros((1, 8), dtype="float32")
-        row[0, sum(ord(value) for value in text) % 8] = 1.0
-        return row
+        return self.embed_texts([text])
 
 
 class FakeReranker:

@@ -9,8 +9,8 @@ from typing import Any, Dict
 from .config import SETTINGS
 
 
-GROUNDING_POLICY_SCHEMA_VERSION = "1.0"
-DEFAULT_PREMISE_VERSION = "context-envelope-v1"
+GROUNDING_POLICY_SCHEMA_VERSION = "1.1"
+DEFAULT_PREMISE_VERSION = "multi-window-v1"
 DEFAULT_GUARD_VERSION = "deterministic-guards-v1"
 
 
@@ -22,6 +22,8 @@ class GroundingPolicy:
     contradiction_threshold: float = SETTINGS.grounding_contradiction_threshold
     low_confidence_margin: float = SETTINGS.grounding_low_confidence_margin
     conflict_relevance_threshold: float = SETTINGS.grounding_conflict_relevance_threshold
+    anchor_overlap_threshold: float = SETTINGS.grounding_anchor_overlap_threshold
+    semantic_support_threshold: float = SETTINGS.grounding_semantic_support_threshold
     premise_strategy: str = SETTINGS.grounding_premise_strategy
     premise_version: str = DEFAULT_PREMISE_VERSION
     guard_version: str = DEFAULT_GUARD_VERSION
@@ -38,6 +40,8 @@ class GroundingPolicy:
             ("contradiction_threshold", self.contradiction_threshold),
             ("low_confidence_margin", self.low_confidence_margin),
             ("conflict_relevance_threshold", self.conflict_relevance_threshold),
+            ("anchor_overlap_threshold", self.anchor_overlap_threshold),
+            ("semantic_support_threshold", self.semantic_support_threshold),
         ):
             if not 0.0 <= value <= 1.0:
                 raise ValueError(f"{name} must be between 0 and 1.")

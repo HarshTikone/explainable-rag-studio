@@ -27,16 +27,22 @@ flowchart TD
     Verify -.disputed/low-confidence.-> Review[(outputs/reviews.db\nhuman review queue)]
 ```
 
+The full-profile reranker uses corpus lifecycle metadata as a deterministic final guard: evidence
+explicitly marked obsolete/legacy stays behind active evidence unless the question asks for
+historical or incident information. This prevents a cross-encoder from preferring a stale passage
+merely because a contrastive question quotes both the old and current values.
+
 Verification (`backend/grounding.py`) runs two layers per claim, not one:
 
 1. **Deterministic guards** — regex/word-list checks for missing identifiers, numeric conflicts,
    negation mismatches, and antonym state pairs between the claim and its cited evidence. Any
    guard in `HARD_CONFLICT_REASONS` short-circuits straight to a `contradicted` verdict,
    independent of the model.
-2. **NLI cross-encoder** (`cross-encoder/nli-deberta-v3-small`, pinned revision, CPU/ONNX) —
-   scores entailment/contradiction/neutral for the claim against its cited premise. Verdicts
-   combine both signals (`backend/grounding.py:462-479`): a claim is only `supported` if it has
-   no guard hits *and* is either an exact extractive match or clears the entailment threshold.
+2. **NLI cross-encoder** (`cross-encoder/nli-deberta-v3-xsmall`, pinned revision, CPU/ONNX) —
+   scores entailment/contradiction/neutral against three bounded premises: the best atomic
+   sentence, its adjacent two-sentence window, and the bounded full chunk. Maximum entailment and
+   contradiction are aggregated independently. Calibrated identifier/number anchors and embedding
+   similarity can support a claim only when no hard conflict exists.
 
 Both calibration (which policy thresholds to lock) and promotion (does the locked policy clear
 the bar) run against a frozen, split benchmark (`data/grounding_benchmark.json`): 48 calibration
@@ -82,6 +88,31 @@ its first argument (`migrate` / `api` / `streamlit` / `worker`) and, in postgres
 `backend/config.py` reads. The default `PLATFORM_MODE=legacy` profile (a bare `pip install` run,
 no compose stack) skips all of that and runs on local FAISS + SQLite — the two profiles share
 application code, not infrastructure.
+
+## Hosted public profile
+
+The Render service is a separate constrained profile, not a smaller claim about the full stack:
+
+- `LOW_MEMORY_DEMO=true` forces BM25 and rejects dense/hybrid API requests with `422`.
+- No embedding, reranking, or NLI model is instantiated or downloaded.
+- Gemini `gemini-2.5-flash` may make one 12-second call to select at most two exact cited evidence
+  sentences. Every returned claim must be an exact normalized substring of its cited chunk.
+- Global/session minute and daily allowances, single-call concurrency, and a five-minute circuit
+  breaker protect the Free-tier budget. Every failure continues through deterministic extraction.
+- Only Home, What is RAG, Ask & Explain, and Results are registered in public navigation; uploads
+  and authenticated workspaces stay in the full profile.
+
+Both Streamlit and FastAPI call `backend/query_service.py`, so retrieval policy, generation,
+verification, fallback behavior, privacy-safe metrics, and limits cannot drift between surfaces.
+
+## Observability boundary
+
+OpenTelemetry spans cover parsing, chunking, embedding, retrieval, fusion, reranking, Gemini
+generation, verification, and complete queries. Export is inert unless
+`OTEL_EXPORTER_OTLP_ENDPOINT` is configured. Spans never contain raw queries, prompts, evidence,
+keys, or user identifiers. Local metrics retain query hashes/lengths, model and fallback state,
+Gemini token usage and configurable cost estimates, plus aggregate context/embedding/verifier
+cache hits and misses.
 
 Security posture, concretely:
 

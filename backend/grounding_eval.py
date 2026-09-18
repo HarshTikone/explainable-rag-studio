@@ -11,7 +11,7 @@ from dataclasses import replace
 from typing import Any, Dict, List, Sequence, Tuple
 
 from .eval import percentile
-from .grounding import select_evidence_premise, verify_claims
+from .grounding import evidence_premises, verify_claims
 from .grounding_models import DraftClaim, StructuredDraft
 from .grounding_policy import GroundingPolicy, default_grounding_policy
 from .utils import ensure_dir, write_json
@@ -71,7 +71,10 @@ def _score_case_pairs(
     pairs = []
     for case in cases:
         for chunk_id in case["evidence_chunk_ids"]:
-            pairs.append((select_evidence_premise(by_id[chunk_id], case["claim"], policy), case["claim"]))
+            pairs.extend(
+                (premise, case["claim"])
+                for premise in evidence_premises(by_id[chunk_id], case["claim"], policy)
+            )
     started = time.perf_counter()
     scores = verifier.score(pairs)
     latency = (time.perf_counter() - started) * 1000
@@ -83,6 +86,7 @@ def _score_case_pairs(
 def _report_from_scores(
     cases: List[Dict[str, Any]], by_id: Dict[str, Dict[str, Any]], verifier,
     policy: GroundingPolicy, score_map: Dict[Tuple[str, str], Dict[str, float]], batch_latency_ms: float,
+    semantic_scorer=None,
 ) -> Dict[str, Any]:
     class CachedVerifier:
         model_name = verifier.model_name
@@ -99,7 +103,10 @@ def _report_from_scores(
         draft = StructuredDraft(answerable=True, claims=[DraftClaim(
             text=case["claim"], cited_chunk_ids=case["evidence_chunk_ids"][:3], provenance="generated"
         )])
-        run = verify_claims(draft, legacy, verifier=CachedVerifier(), policy=policy)
+        run = verify_claims(
+            draft, legacy, verifier=CachedVerifier(), policy=policy,
+            semantic_scorer=semantic_scorer,
+        )
         claim = (run.result.accepted_claims + run.result.rejected_claims)[0]
         predicted = _predicted_label(claim.verdict)
         rows.append({
@@ -109,6 +116,9 @@ def _report_from_scores(
             "verdict": claim.verdict, "correct": predicted == case["label"],
             "entailment_score": claim.entailment_score,
             "contradiction_score": claim.contradiction_score,
+            "reason_codes": claim.reason_codes,
+            "decision_path": claim.decision_path,
+            "evidence_diagnostics": [item.model_dump() for item in claim.evidence],
             "latency_ms": batch_latency_ms / max(1, len(cases)),
         })
     report = summarize_grounding_rows(rows)
@@ -121,12 +131,16 @@ def _report_from_scores(
 def run_grounding_benchmark(
     cases: List[Dict[str, Any]], corpus_items: List[Dict[str, Any]], verifier,
     policy: GroundingPolicy | None = None,
+    semantic_scorer=None,
 ) -> Dict[str, Any]:
     by_id = {item["chunk_id"]: item for item in corpus_items}
     validate_grounding_benchmark(cases, by_id)
     active_policy = policy or default_grounding_policy()
     score_map, latency = _score_case_pairs(cases, by_id, verifier, active_policy)
-    report = _report_from_scores(cases, by_id, verifier, active_policy, score_map, latency)
+    report = _report_from_scores(
+        cases, by_id, verifier, active_policy, score_map, latency,
+        semantic_scorer=semantic_scorer,
+    )
     report["benchmark_fingerprint"] = grounding_benchmark_fingerprint(cases, corpus_items)
     return report
 
@@ -151,62 +165,68 @@ def _stratified_folds(cases: Sequence[Dict[str, Any]], k: int) -> List[List[Dict
 def calibrate_grounding_policy(
     cases: List[Dict[str, Any]], corpus_items: List[Dict[str, Any]], verifier,
     base_policy: GroundingPolicy | None = None, cv_folds: int = 4,
+    semantic_scorer=None,
 ) -> Dict[str, Any]:
     if not cases or any(case.get("split") != "calibration" for case in cases):
         raise ValueError("Calibration accepts calibration cases only; held-out cases are sealed.")
     by_id = {item["chunk_id"]: item for item in corpus_items}
     validate_grounding_benchmark(cases, by_id)
     base = base_policy or default_grounding_policy()
-    # Folds are fixed by the case set alone (label-stratified, not policy-dependent), so they're
-    # computed once and reused for every candidate's cross-validated score below. This is nested
-    # cross-validation *within* the 48 calibration cases only -- held-out is never touched, per
-    # docs/QUALITY_GATE_RELEASE.md's "the 48 grounding calibration cases are the only cases used
-    # to select premise strategy and thresholds."
+    # Folds are fixed by the case set alone (label-stratified, not policy-dependent), so they are
+    # computed once and reused for every candidate. Threshold selection stays entirely inside the
+    # frozen calibration split; the held-out split is never touched here.
     folds = _stratified_folds(cases, cv_folds)
     candidates = []
-    for strategy in ("atomic_sentence", "context_envelope"):
-        premise_version = "atomic-sentence-v1" if strategy == "atomic_sentence" else "context-envelope-v1"
-        scoring_policy = replace(base, premise_strategy=strategy, premise_version=premise_version)
-        score_map, latency = _score_case_pairs(cases, by_id, verifier, scoring_policy)
-        for entailment in (0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85):
-            for contradiction in (0.65, 0.70, 0.75, 0.80, 0.85):
-                for relevance in (0.20, 0.30, 0.40):
-                    policy = replace(
-                        scoring_policy, model_name=verifier.model_name, model_revision=verifier.model_revision,
-                        entailment_threshold=entailment, contradiction_threshold=contradiction,
-                        conflict_relevance_threshold=relevance,
-                    )
-                    # Pooled metrics over all 48 cases decide eligibility, unchanged --
-                    # QUALITY_GATE_RELEASE.md's safety bar (precision>=0.95,
-                    # contradiction_recall>=0.85) is a fixed constraint, not something this
-                    # methodology change alters.
-                    report = _report_from_scores(cases, by_id, verifier, policy, score_map, latency)
-                    precision = report["per_label"]["supported"]["precision"]
-                    contradiction_recall = report["per_label"]["contradiction"]["recall"]
-                    eligible = precision >= 0.95 and contradiction_recall >= 0.85
-                    # Cross-validated macro_f1: many candidates tie exactly on the pooled score
-                    # (48 cases is too little data to discriminate ~20+ threshold combinations
-                    # that classify them identically), so pooled macro_f1 alone has no signal
-                    # left to select on. Reusing the same cached score_map, score each candidate
-                    # per fold instead -- a candidate whose macro_f1 stays high and stable across
-                    # folds generalizes to unseen cases more reliably than one that reaches the
-                    # same pooled average by acing most folds and stumbling on one.
-                    fold_macro_f1s = [
-                        _report_from_scores(fold, by_id, verifier, policy, score_map, latency)["macro_f1"]
-                        for fold in folds if fold
-                    ]
-                    mean_fold_macro_f1 = statistics.fmean(fold_macro_f1s) if fold_macro_f1s else 0.0
-                    fold_macro_f1_stdev = statistics.pstdev(fold_macro_f1s) if len(fold_macro_f1s) > 1 else 0.0
-                    cv_robust_macro_f1 = mean_fold_macro_f1 - fold_macro_f1_stdev
-                    candidates.append({
-                        "policy": policy.to_dict(), "eligible": eligible,
-                        "macro_f1": report["macro_f1"], "supported_precision": precision,
-                        "contradiction_recall": contradiction_recall,
-                        "latency_ms": report["latency_ms"]["p95"],
-                        "cv_fold_macro_f1_mean": mean_fold_macro_f1,
-                        "cv_fold_macro_f1_stdev": fold_macro_f1_stdev,
-                        "cv_robust_macro_f1": cv_robust_macro_f1,
-                    })
+    scoring_policy = replace(
+        base,
+        premise_strategy="context_envelope",
+        premise_version="multi-window-v1",
+    )
+    score_map, latency = _score_case_pairs(cases, by_id, verifier, scoring_policy)
+    for entailment in (0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85):
+        for contradiction in (0.65, 0.70, 0.75, 0.80, 0.85):
+            for relevance in (0.20, 0.30, 0.40):
+                for anchor_threshold in (0.45, 0.55, 0.65, 0.75):
+                    for semantic_threshold in (0.65, 0.70, 0.75, 0.80, 0.85):
+                        policy = replace(
+                            scoring_policy,
+                            model_name=verifier.model_name,
+                            model_revision=verifier.model_revision,
+                            entailment_threshold=entailment,
+                            contradiction_threshold=contradiction,
+                            conflict_relevance_threshold=relevance,
+                            anchor_overlap_threshold=anchor_threshold,
+                            semantic_support_threshold=semantic_threshold,
+                        )
+                        report = _report_from_scores(
+                            cases, by_id, verifier, policy, score_map, latency,
+                            semantic_scorer=semantic_scorer,
+                        )
+                        precision = report["per_label"]["supported"]["precision"]
+                        contradiction_recall = report["per_label"]["contradiction"]["recall"]
+                        eligible = precision >= 0.95 and contradiction_recall >= 0.85
+                        fold_macro_f1s = [
+                            _report_from_scores(
+                                fold, by_id, verifier, policy, score_map, latency,
+                                semantic_scorer=semantic_scorer,
+                            )["macro_f1"]
+                            for fold in folds if fold
+                        ]
+                        mean_fold_macro_f1 = statistics.fmean(fold_macro_f1s) if fold_macro_f1s else 0.0
+                        fold_macro_f1_stdev = (
+                            statistics.pstdev(fold_macro_f1s) if len(fold_macro_f1s) > 1 else 0.0
+                        )
+                        candidates.append({
+                            "policy": policy.to_dict(),
+                            "eligible": eligible,
+                            "macro_f1": report["macro_f1"],
+                            "supported_precision": precision,
+                            "contradiction_recall": contradiction_recall,
+                            "latency_ms": report["latency_ms"]["p95"],
+                            "cv_fold_macro_f1_mean": mean_fold_macro_f1,
+                            "cv_fold_macro_f1_stdev": fold_macro_f1_stdev,
+                            "cv_robust_macro_f1": mean_fold_macro_f1 - fold_macro_f1_stdev,
+                        })
     ranked = sorted(
         candidates,
         key=lambda row: (

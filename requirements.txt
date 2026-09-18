@@ -41,3 +41,9 @@ cryptography==50.0.0
 PyJWT[crypto]==2.13.0
 httpx==0.28.1
 onnxruntime==1.23.2
+
+# Optional at runtime: no exporter is created unless OTEL_EXPORTER_OTLP_ENDPOINT is set.
+opentelemetry-api==1.44.0
+opentelemetry-sdk==1.44.0
+opentelemetry-exporter-otlp-proto-http==1.44.0
+PyYAML==6.0.2

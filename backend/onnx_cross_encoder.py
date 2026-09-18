@@ -52,7 +52,11 @@ class NativeOnnxCrossEncoder:
             cached = self._token_cache.get(key)
             if cached is not None:
                 self._token_cache.move_to_end(key)
+                from .telemetry import record_cache_event
+                record_cache_event("verifier_tokenization", True)
                 return cached
+        from .telemetry import record_cache_event
+        record_cache_event("verifier_tokenization", False)
         encoded = self.tokenizer(
             [pair[0] for pair in pairs],
             [pair[1] for pair in pairs],

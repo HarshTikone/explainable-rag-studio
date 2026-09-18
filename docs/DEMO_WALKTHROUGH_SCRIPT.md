@@ -1,78 +1,75 @@
-# Demo walkthrough script: before/after hybrid retrieval
+# Demo walkthrough script: public portfolio release
 
-Milestone 7 (`docs/ADVANCED_BUILD_PLAN.md`) calls for "a short failure-to-fix walkthrough using
-the same benchmark before and after hybrid retrieval." This is a script for recording that,
-written so it can be followed step by step — it isn't itself the recording (this document can't
-produce video), but everything in it maps to a real page/action in the app, so recording it is
-mechanical rather than something that needs re-deriving on the day. Target length: 3–5 minutes.
-Numbers to say on camera are the real, committed ones from `docs/RERANKING_BENCHMARK.md` — don't
-substitute different numbers from a local run without updating both this script and that doc.
+Record this only after the merged `main` SHA is live on Render and the final smoke test passes.
+Target length: 3–5 minutes. Use the public URL, not a local build, so cold-start and fallback
+behavior shown on camera match what a reviewer will experience.
 
-## Setup (before recording)
+## Before recording
 
-```bash
-python scripts/generate_dev_secrets.py   # legacy/local profile is fine for this; no need for the full compose stack
-streamlit run app/Home.py
-```
-
-Load the bundled sanitized corpus (`data/public_demo/`) and build the index with the release
-defaults: 420-token chunks, 80-token overlap. Confirm the demo benchmark file
-(`data/public_demo_benchmark.json`) is the one loaded on the Evaluation page — this keeps the
-on-screen numbers reproducible by a viewer who clones the repo.
+1. Confirm Render reports the Free plan and no disk or paid add-ons.
+2. Confirm the deployed commit is the approved merge SHA.
+3. Open <https://explainable-rag-studio-demo.onrender.com> and allow up to roughly one minute for
+   the free instance to wake.
+4. Smoke-test Home, What is RAG, Ask & Explain, and Results.
+5. Run all four sample questions and confirm their Gemini/fallback badges are truthful.
 
 ## Script
 
-**0:00–0:30 — The problem, stated plainly**
+### 0:00–0:35 — What the project demonstrates
 
-> "This is a RAG system with 60 real Recall/MRR/nDCG-labeled questions against a 60-document
-> corpus. The baseline here is `hybrid_rrf` — dense embeddings plus BM25 keyword search, fused
-> with Reciprocal Rank Fusion. It works, but let's see where it actually fails."
+> “Explainable RAG Studio is a reliability workbench, not a chatbot wrapper. This hosted profile
+> runs on a free 512 MB instance, so it deliberately uses BM25 retrieval and exact cited evidence.
+> The repository also retains a full hybrid, reranked, locally verified platform for engineering
+> and evaluation.”
 
-Open the **Evaluation** page. Run `hybrid_rrf` against the benchmark. Let the aggregate metrics
-render.
+On Home, point out the hosted-profile label, sanitized-corpus status, cold-start notice, and the
+absence of upload or administration controls.
 
-**0:30–1:30 — Show a real failure case, not a statistic**
+### 0:35–1:15 — Explain the pipeline
 
-> "Aggregate numbers hide the interesting part. Let's look at one failure."
+Open **What is RAG**. Briefly show retrieval, answer selection, citations, and strict abstention.
+Mention that Gemini can select at most two verbatim evidence sentences; invalid output, timeout,
+quota, or provider failure automatically falls back locally.
 
-Open a hard-negative or paraphrase-category question from the results (the benchmark has 10 of
-each — pick one where `hybrid_rrf` ranks the correct chunk below top-3, visible in the per-question
-ranks in the evaluation artifact). Switch to **Ask & Explain** and re-run that exact question.
-Show the retrieved chunks and their similarity scores — narrate why a keyword/dense hybrid still
-gets fooled here (e.g., two documents that share most of the same vocabulary but describe
-different, sometimes contradictory, procedures — that's exactly what the hard-negative category is
-designed to expose).
+### 1:15–2:40 — Show answers and a hard negative
 
-**1:30–2:30 — Apply the fix, re-run the same benchmark**
+Open **Ask & Explain** and run these tested prompts:
 
-> "Now let's add cross-encoder reranking on top of the same fused candidates — same corpus, same
-> questions, same fingerprint, only the ranking strategy changes."
+1. `How long are Aegis audit events retained?` — show `400 days` and its citation.
+2. `What incident ID investigated Meridian clock skew?` — show `ID-2026-014`.
+3. `Are current Aegis audit events retained for 400 or 90 days?` — show that the current
+   `400 days` evidence wins over the obsolete 90-day document.
 
-Back on **Evaluation**, run `hybrid_rerank` (top 30 fused candidates re-scored by
-`cross-encoder/ms-marco-MiniLM-L-6-v2`) against the identical benchmark. Show the same
-previously-wrong question now ranking the correct chunk higher on **Ask & Explain**.
+For one response, expand the retrieval trace and exact generator context. Point out the visible
+badge: **Gemini-assisted**, **Exact extractive fallback**, or **Quota fallback**. The badge is an
+operating fact, not a quality score.
 
-**2:30–3:30 — The numbers, and the part that almost didn't ship**
+### 2:40–3:15 — Show safe abstention
 
-> "On the real CI measurement — Python 3.11, the full Docker stack, a GitHub Actions runner, not
-> a local diagnostic — this was Recall@5 up 0.0345, MRR up 0.0218, nDCG@5 up 0.0356, and candidate
-> retrieval p95 latency at 613 milliseconds, comfortably under the 1.5-second budget."
+Run `What is the manufacturing cost of Northstar's hardware appliance?`. The corpus does not
+contain that fact, so the correct answer is an abstention. Emphasize that unrelated Northstar
+evidence is not converted into a confident answer.
 
-Show `docs/RERANKING_BENCHMARK.md`'s reference-run table on screen briefly. Optionally, mention
-the actual failure-to-fix story behind *that* number: the very first measurement of this same
-comparison showed the identical quality gain but a p95 of 1980ms — over budget — on a dirty-tree,
-wrong-Python-version, no-Docker diagnostic. The fix wasn't the retrieval strategy; it was getting
-a trustworthy CI measurement running at all (full story: `docs/case-studies/retrieval-improvement.md`).
+### 3:15–4:15 — Show measured evidence honestly
 
-**3:30–4:00 — Close**
+Open **Results**. Show the 112-question, six-category benchmark and its 25 unanswerable questions
+(22.3%). Explain the profile distinction:
 
-> "Same corpus, same 60 questions, same fingerprint-verified inputs — only the ranking strategy
-> changed, and it's the promotion gate itself, not a subjective read, that decided this shipped."
+- Hosted: BM25, exact evidence, no local embedding/reranking/NLI model.
+- Full platform: `hybrid_rerank` plus pinned `cross-encoder/nli-deberta-v3-xsmall` verification.
+
+Call out rejected gates as openly as promoted ones. Read the decision and measurements from the
+committed Results artifact; do not quote the local pre-release diagnostic. Record only after
+retrieval, grounding, runtime, and security are all promoted together for the deployed SHA.
+
+### 4:15–4:35 — Close
+
+> “Every displayed answer is traceable to evidence, every fallback is visible, and the project’s
+> limitations are part of the product. The same repository contains the benchmark, release gates,
+> security controls, and production-profile implementation behind this demo.”
 
 ## After recording
 
-- Trim to the target length; keep the on-screen benchmark numbers unedited/unobscured so they're
-  independently checkable against `docs/RERANKING_BENCHMARK.md`.
-- Publish alongside the live demo (Milestone 7's other unclosed item) rather than as a standalone
-  asset with no way to try the thing being shown.
-- Link it from `README.md`'s demo section once recorded.
+- Verify every number visible in the video against the committed release artifact.
+- Link the finished recording from `README.md` only after the live URL and deployed SHA still pass
+  the final smoke test.

@@ -138,7 +138,7 @@ def build_draft_bundles(report: Dict[str, Any]) -> List[Dict[str, Any]]:
     for row in report["results"]:
         hits = row.get("retrieval_hits", [])
         legacy = [(float(hit.get("final_score", 0.0)), hit) for hit in hits]
-        draft = build_extractive_draft(legacy)
+        draft = build_extractive_draft(legacy, question=row["question"])
         bundles.append({
             "question": row["question"], "category": row.get("category", "general"),
             "retrieved": hits, "draft": draft.model_dump(),
@@ -166,6 +166,7 @@ def _baseline_from_bundle(bundle: Dict[str, Any]) -> Dict[str, Any]:
 def run_grounding_qa(
     benchmark: List[Dict[str, Any]], bundles: List[Dict[str, Any]], verifier,
     policy: GroundingPolicy, output_dir: str, *, repeats: int = 3,
+    semantic_scorer=None,
 ) -> Dict[str, Any]:
     from .grounding_models import StructuredDraft
 
@@ -176,7 +177,13 @@ def run_grounding_qa(
         draft = StructuredDraft.model_validate(bundle["draft"])
         legacy = [(float(hit.get("final_score", 0.0)), hit) for hit in bundle["retrieved"]]
         started = time.perf_counter()
-        runs = [verify_claims(draft, legacy, verifier=verifier, policy=policy).result for _ in range(repeats)]
+        runs = [
+            verify_claims(
+                draft, legacy, verifier=verifier, policy=policy,
+                semantic_scorer=semantic_scorer,
+            ).result
+            for _ in range(repeats)
+        ]
         total_ms = (time.perf_counter() - started) * 1000
         first = runs[0]
         strict_outputs[question] = {
@@ -208,10 +215,13 @@ def run_grounding_qa(
     return {"baseline": baseline, "strict": strict, "draft_fingerprint": draft_fingerprint, "retrieval_fingerprint": retrieval_fingerprint}
 
 
-def _calibrate_locked_policy(calibration, items, verifier) -> Dict[str, Any]:
+def _calibrate_locked_policy(calibration, items, verifier, semantic_scorer=None) -> Dict[str, Any]:
     if len(calibration) != 48 or any(case.get("split") != "calibration" for case in calibration):
         raise ValueError("Calibration requires exactly the frozen 48 calibration cases and cannot receive held-out cases.")
-    result = calibrate_grounding_policy(calibration, items, verifier, default_grounding_policy())
+    result = calibrate_grounding_policy(
+        calibration, items, verifier, default_grounding_policy(),
+        semantic_scorer=semantic_scorer,
+    )
     attempts = [{"model": verifier.model_name, "revision": verifier.model_revision, "result": result}]
     selected_verifier = verifier
     if not result["selected"] and verifier.model_name == SETTINGS.grounding_model:
@@ -226,7 +236,10 @@ def _calibrate_locked_policy(calibration, items, verifier) -> Dict[str, Any]:
         fallback_policy = replace(
             default_grounding_policy(), model_name=fallback_model, model_revision=fallback_revision
         )
-        result = calibrate_grounding_policy(calibration, items, selected_verifier, fallback_policy)
+        result = calibrate_grounding_policy(
+            calibration, items, selected_verifier, fallback_policy,
+            semantic_scorer=semantic_scorer,
+        )
         attempts.append({"model": fallback_model, "revision": fallback_revision, "result": result})
     if not result["selected"]:
         raise RuntimeError("No grounding policy met calibration safety constraints.")
@@ -259,7 +272,9 @@ def run_release_validation(
     # Warm real models before measured passes.
     retrieve(store, active_embedder, benchmark[0]["question"], 5, "hybrid_rerank", reranker=active_reranker)
     active_verifier.score([("Warm verifier evidence.", "Warm verifier evidence.")])
-    locked = _calibrate_locked_policy(calibration, items, active_verifier)
+    from .grounding import EmbeddingSemanticScorer
+    semantic_scorer = EmbeddingSemanticScorer(active_embedder)
+    locked = _calibrate_locked_policy(calibration, items, active_verifier, semantic_scorer)
     policy = locked["policy"]
     active_verifier = locked["verifier"]
     retrieval = run_retrieval_release(
@@ -267,9 +282,12 @@ def run_release_validation(
     )
     bundles = build_draft_bundles(retrieval["selected"])
     qa = run_grounding_qa(
-        benchmark, bundles, active_verifier, policy, str(release_dir / "grounding_qa"), repeats=repeats
+        benchmark, bundles, active_verifier, policy, str(release_dir / "grounding_qa"),
+        repeats=repeats, semantic_scorer=semantic_scorer,
     )
-    heldout_report = run_grounding_benchmark(heldout, items, active_verifier, policy)
+    heldout_report = run_grounding_benchmark(
+        heldout, items, active_verifier, policy, semantic_scorer=semantic_scorer
+    )
     grounding_gate = grounding_promotion_gate(heldout_report, qa["strict"], qa["baseline"])
     checks = runtime_checks or {}
     runtime_gates = {

@@ -52,6 +52,11 @@ class ClaimEvidence(BaseModel):
     neutral_score: float = 0.0
     relevance_score: float = 0.0
     premise_version: str = ""
+    candidate_premises: List[str] = Field(default_factory=list)
+    raw_scores: List[Dict[str, float]] = Field(default_factory=list)
+    guard_reasons: List[str] = Field(default_factory=list)
+    semantic_similarity: float = 0.0
+    anchor_match: bool = False
 
 
 class ClaimVerification(BaseModel):
@@ -66,6 +71,7 @@ class ClaimVerification(BaseModel):
     low_confidence: bool = False
     reason_codes: List[str] = Field(default_factory=list)
     evidence: List[ClaimEvidence] = Field(default_factory=list)
+    decision_path: List[str] = Field(default_factory=list)
 
 
 class GroundedAnswer(BaseModel):
