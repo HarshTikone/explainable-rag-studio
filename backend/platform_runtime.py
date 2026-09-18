@@ -2,17 +2,13 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 from .config import SETTINGS
-from .database import DatabaseRuntime, GlobalJobLookup
-from .distributed_jobs import RqTaskQueue
-from .object_store import S3EnvelopeObjectStore
-from .oidc import OidcValidator, PkceStateStore
-from .postgres_store import PgVectorStore
-from .production_ingestion import ProductionIngestionService
-from .rate_limit import RedisRateLimiter
-from .secrets import FileSecretProvider
-from .security_models import ROLE_SCOPES, SecurityContext
+
+if TYPE_CHECKING:
+    from .postgres_store import PgVectorStore
+    from .security_models import SecurityContext
 
 
 class PlatformConfigurationError(RuntimeError):
@@ -21,6 +17,17 @@ class PlatformConfigurationError(RuntimeError):
 
 class PlatformRuntime:
     def __init__(self):
+        # Keep the public BM25 profile free of production-only database, queue,
+        # object-store, and identity dependencies. These imports are needed only
+        # when PLATFORM_MODE=postgres actually composes the full platform.
+        from .database import DatabaseRuntime
+        from .distributed_jobs import RqTaskQueue
+        from .object_store import S3EnvelopeObjectStore
+        from .oidc import OidcValidator, PkceStateStore
+        from .production_ingestion import ProductionIngestionService
+        from .rate_limit import RedisRateLimiter
+        from .secrets import FileSecretProvider
+
         missing = [name for name, value in {
             "DATABASE_URL": SETTINGS.database_url,
             "REDIS_URL": SETTINGS.redis_url,
@@ -53,10 +60,14 @@ class PlatformRuntime:
         self.pkce = PkceStateStore(self.redis)
 
     def vector_store(self, context: SecurityContext) -> PgVectorStore:
+        from .postgres_store import PgVectorStore
+
         return PgVectorStore(self.database, context)
 
     def process_ingestion_job(self, job_id: str) -> None:
         from sqlalchemy import select
+        from .database import GlobalJobLookup
+        from .security_models import ROLE_SCOPES, SecurityContext
 
         with self.database.engine.connect() as connection:
             row = connection.execute(select(GlobalJobLookup.organization_id, GlobalJobLookup.created_by).where(GlobalJobLookup.job_id == job_id)).first()

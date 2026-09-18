@@ -33,6 +33,16 @@ def main() -> None:
     ):
         app.switch_page(path).run(timeout=30)
         _require_clean(app, label)
+        if label == "What is RAG":
+            rendered = "\n".join(str(item.value) for item in app.markdown)
+            if "FAISS" in rendered or any(item.label == "Build your first index" for item in app.button):
+                raise AssertionError("The public RAG explainer exposed full-profile ingestion or FAISS controls.")
+            if not any(item.label == "Try a tested question" for item in app.button):
+                raise AssertionError("The public RAG explainer did not route visitors to the tested demo.")
+        if label == "Results":
+            rendered = "\n".join(str(item.value) for item in app.markdown)
+            if "Overall promoted" in rendered and "overall production-quality claim remains rejected" in rendered:
+                raise AssertionError("Results rendered contradictory overall release decisions.")
         if label == "Ask & Explain":
             if not any(item.label == "Your question" for item in app.text_area):
                 raise AssertionError("Ask & Explain did not render its question input.")

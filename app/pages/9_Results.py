@@ -70,10 +70,18 @@ st.markdown("""
 """)
 
 section("Known limitations", "These are release constraints, not hidden footnotes.")
-st.markdown("""
-- Render's free instance can take roughly a minute to wake after inactivity.
-- Free-tier Gemini is allowance-limited; quota and provider failures use the local exact-evidence fallback.
-- The public profile intentionally hides ingestion and administrative workspaces.
-- The overall production-quality claim remains rejected until retrieval, grounding, runtime, and security are promoted for the same release SHA.
-""")
+limitations = [
+    "Render's free instance can take roughly a minute to wake after inactivity.",
+    "Free-tier Gemini is allowance-limited; quota, invalid selections, and provider failures use the local exact-evidence fallback.",
+    "The public profile intentionally hides ingestion and administrative workspaces.",
+]
+if overall:
+    limitations.append(
+        "The promoted decision applies to the committed release evidence; the hosted 512 MB profile intentionally uses BM25 and deterministic verification instead of the full hybrid/NLI runtime."
+    )
+else:
+    limitations.append(
+        "The overall production-quality claim remains rejected until every required gate is promoted for the same release SHA."
+    )
+st.markdown("\n".join(f"- {item}" for item in limitations))
 footer()

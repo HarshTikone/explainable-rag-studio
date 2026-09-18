@@ -28,17 +28,22 @@ from backend.security_scanner import scanner_capabilities
 from backend.tenant_store import TenantStoreManager
 from backend.vectorstore import FaissStore
 from backend.platform_runtime import PlatformConfigurationError, get_platform_runtime
-from backend.postgres_security import PostgresSecurityRegistry
 from backend.rate_limit import MemoryDemoRateLimiter, RateLimitUnavailable
-from backend.postgres_review import PostgresReviewRegistry
 from backend.query_service import PublicDemoPolicyError, create_gemini_client, run_query
 
 
 platform_runtime = get_platform_runtime()
-security_registry = (
-    PostgresSecurityRegistry(platform_runtime.database, SETTINGS.api_key_pepper, SETTINGS.audit_hmac_key)
-    if platform_runtime else SecurityRegistry(SETTINGS.security_db_path, SETTINGS.api_key_pepper, SETTINGS.audit_hmac_key)
-)
+if platform_runtime:
+    from backend.postgres_review import PostgresReviewRegistry
+    from backend.postgres_security import PostgresSecurityRegistry
+
+    security_registry = PostgresSecurityRegistry(
+        platform_runtime.database, SETTINGS.api_key_pepper, SETTINGS.audit_hmac_key
+    )
+else:
+    security_registry = SecurityRegistry(
+        SETTINGS.security_db_path, SETTINGS.api_key_pepper, SETTINGS.audit_hmac_key
+    )
 security_registry.ensure_public_organization(SETTINGS.public_organization_id)
 tenant_stores = TenantStoreManager(SETTINGS.tenant_index_root, SETTINGS.tenant_store_cache_size)
 store = FaissStore(SETTINGS.index_dir)  # explicit read-only bridge for the legacy public demo

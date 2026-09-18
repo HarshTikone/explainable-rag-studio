@@ -37,6 +37,20 @@ class StructuredDraft(BaseModel):
     claims: List[DraftClaim] = Field(default_factory=list, max_length=8)
 
 
+class EvidenceSelection(BaseModel):
+    """A provider-selected sentence address, resolved to exact text locally."""
+
+    chunk_id: str = Field(min_length=1, max_length=120)
+    sentence_index: int = Field(ge=0)
+
+
+class PublicEvidenceDraft(BaseModel):
+    """Bounded public-provider response with no generated answer text."""
+
+    answerable: bool
+    selections: List[EvidenceSelection] = Field(default_factory=list, max_length=2)
+
+
 class ClaimEvidence(BaseModel):
     chunk_id: str
     source: str = ""

@@ -28,6 +28,7 @@ jobs:
       - name: Dependency and static security checks
         run: |
           pip-audit -r requirements.txt
+          pip-audit -r requirements-public.txt
           bandit -q -ll -r backend api.py scripts -x tests
       - name: Complete Python 3.11 suite
         run: >-

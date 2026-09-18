@@ -38,6 +38,13 @@ def main() -> None:
             raise AssertionError(f"{key} must be {expected!r} in render.yaml.")
     if "GEMINI_API_KEY" not in env:
         raise AssertionError("GEMINI_API_KEY must be declared as a dashboard-managed secret.")
+    public_requirements = (ROOT / "requirements-public.txt").read_text(encoding="utf-8").casefold()
+    for heavyweight in ("sentence-transformers", "transformers==", "torch==", "onnxruntime"):
+        if heavyweight in public_requirements:
+            raise AssertionError(f"The public image cannot install heavyweight model runtime: {heavyweight}")
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    if 'pip install -r requirements-public.txt' not in dockerfile:
+        raise AssertionError("The low-memory Docker build must install requirements-public.txt.")
     print("Public Render release configuration is zero-cost and valid.")
 
 

@@ -9,7 +9,12 @@ from typing import Any, Callable, Dict
 from .config import SETTINGS
 from .demo_budget import DEMO_GEMINI_BUDGET, DemoGeminiBudget
 from .generation_usage import usage_from_response
-from .grounding import DeterministicOnlyVerifier, EmbeddingSemanticScorer, generate_public_exact_draft
+from .grounding import (
+    DeterministicOnlyVerifier,
+    EmbeddingSemanticScorer,
+    PublicDraftValidationError,
+    generate_public_exact_draft,
+)
 from .observability import set_span_attributes, span
 from .qa import answer_with_optional_llm
 from .retriever import retrieve
@@ -173,6 +178,8 @@ def run_query(
                             "fallback_reason": "",
                             "usage": usage,
                         }
+                    except PublicDraftValidationError:
+                        generation = _fallback_metadata("invalid_provider_response")
                     except FutureTimeout:
                         budget.open_circuit()
                         generation = _fallback_metadata("provider_timeout")
