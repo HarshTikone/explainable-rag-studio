@@ -1,399 +1,292 @@
 # Explainable RAG Studio
 
-> **An end-to-end, recruiter-ready Retrieval-Augmented Generation (RAG) system with explainability, evaluation, and latency observability.**
+**An evidence-first RAG reliability workbench that makes retrieval, citations, grounding decisions, and fallbacks visible.**
 
-This project demonstrates how to build a **production-style RAG Document Q&A system** using modern NLP techniques. It is designed not only to *work*, but to clearly **explain every step of the RAG pipeline** to recruiters, clients, or non-technical stakeholders through an interactive UI.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-46E3B7?logo=render&logoColor=white)](https://explainable-rag-studio-demo.onrender.com/)
+[![Quality](https://github.com/HarshTikone/explainable-rag-studio/actions/workflows/quality.yml/badge.svg)](https://github.com/HarshTikone/explainable-rag-studio/actions/workflows/quality.yml)
+[![Release Quality](https://github.com/HarshTikone/explainable-rag-studio/actions/workflows/release-quality.yml/badge.svg)](https://github.com/HarshTikone/explainable-rag-studio/actions/workflows/release-quality.yml)
+[![Security](https://github.com/HarshTikone/explainable-rag-studio/actions/workflows/security.yml/badge.svg)](https://github.com/HarshTikone/explainable-rag-studio/actions/workflows/security.yml)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 
-## Live public demo
+[Live demo](https://explainable-rag-studio-demo.onrender.com/) · [Watch the walkthrough](docs/assets/explainable-rag-studio-demo.mp4) · [Architecture](docs/ARCHITECTURE.md) · [Release evidence](docs/QUALITY_GATE_RELEASE.md) · [Deployment guide](docs/DEPLOYMENT_RUNBOOK.md)
 
-[Open Explainable RAG Studio](https://explainable-rag-studio-demo.onrender.com)
+> The hosted demo runs on Render's free 512 MB service. A cold start can take about a minute. The app then stays lightweight by using BM25 retrieval and exact-evidence generation with a deterministic fallback.
 
-The hosted portfolio profile is deliberately small and zero-cost: **BM25 + Groq-assisted exact evidence** on Render's free 512 MB plan. Groq may select at most two verbatim cited evidence sentences; invalid output, timeout, quota, or provider failure automatically uses deterministic extraction. The free instance can take roughly one minute to wake after inactivity.
+## Watch the 4-minute walkthrough
 
-The public navigation contains only Home, What is RAG, Ask & Explain, and read-only Results. Uploads and administrative workspaces are disabled. The visitor's question and sanitized evidence excerpts may be sent to GroqCloud, so do not enter private information. Raw questions, prompts, evidence text, and IP addresses are not retained in application telemetry.
+[![Watch the Explainable RAG Studio walkthrough](docs/assets/demo-video-cover.png)](docs/assets/explainable-rag-studio-demo.mp4)
 
-| Profile | Retrieval | Verification | Intended use |
-|---|---|---|---|
-| Hosted free demo | BM25 | Exact evidence + deterministic guards | Stable public walkthrough under 512 MB |
-| Full platform | `hybrid_rerank` (dense + BM25 + cross-encoder) | Pinned `cross-encoder/nli-deberta-v3-xsmall` + guards | Local/production evaluation, ingestion, security, and operations |
+**Click the image to play the narrated demo.** A matching [subtitle file](docs/assets/explainable-rag-studio-demo.srt) is also included.
 
----
+## Why this project exists
 
-## 🎥 Demo Video
+A conventional RAG demo returns an answer. Explainable RAG Studio also shows **why that answer should be trusted**—or why the system refused to answer.
 
-▶️ **Project Walkthrough (3–5 min):**
-[Watch the walkthrough (3-5 min)](https://app.govideolink.com/videos/0DSg0V06vaOuG9vvYxpv/?utm_source=direct&utm_medium=invite_link)
+| Reliability problem | What the studio does |
+| --- | --- |
+| A fluent answer can still be unsupported | Verifies each claim against cited evidence and exposes the decision path |
+| Retrieval quality is difficult to inspect | Shows ranked chunks, scores, strategy, source metadata, and timing |
+| Provider outages and quotas break demos | Falls back to deterministic extraction instead of failing the query |
+| Numbers and identifiers are easy to distort | Applies exact-text, number, identifier, negation, and contradiction guards |
+| Quality claims are often anecdotal | Ships a frozen 112-question benchmark and committed promotion artifact |
+| A full RAG stack is too heavy for a free host | Uses a separate low-memory public profile while preserving the full platform locally |
 
-This short demo walks through:
+## What you can try
 
-* What problem RAG solves
-* PDF ingestion and FAISS indexing
-* Ask & Explain (retrieval + citations)
-* Embedding visualization (UMAP)
-* Evaluation and latency dashboard
+The public app intentionally has four focused pages backed by a **60-document sanitized demo corpus**:
 
-> 📌 *Tip for reviewers:* Watch this video first to understand the system end-to-end in minutes.
+1. **Home** — project framing, hosted-profile limits, and sample prompts.
+2. **What is RAG** — an approachable explanation of retrieval, generation, citations, and verification.
+3. **Ask & Explain** — the complete query trace: answer, evidence, scores, timings, generation mode, and grounding status.
+4. **Results** — the committed release decision, benchmark composition, measured metrics, and known limitations.
 
----
+Try these questions in the [live demo](https://explainable-rag-studio-demo.onrender.com/):
 
-## 🚀 What This Project Does
+- `How long are audit logs retained?`
+- `What is the Meridian incident identifier?`
+- `Compare the 400-day audit retention period with the 90-day temporary artifact period.`
+- `What is the manufacturing cost of the platform?` — this should abstain because the corpus does not contain the answer.
 
-* Upload PDF, scanned PDF, DOCX, Markdown, HTML, and TXT documents
-* Preserve headings and tables with **parent-child contextual chunking**
-* Convert chunks into **vector embeddings**
-* Store and search them efficiently using **FAISS**
-* Compare dense, dense+MMR, **hybrid BM25 + vector retrieval**, and local cross-encoder reranking
-* Fuse lexical and semantic rankings using **Reciprocal Rank Fusion**
-* Rerank the top 30 fused candidates with `cross-encoder/ms-marco-MiniLM-L-6-v2`
-* Track stable document versions, duplicate checks, background ingestion jobs, retries, and soft deletion
-* Generate atomic answer claims with Groq or a deterministic extractive fallback
-* Verify every claim locally with deterministic guards and a CPU NLI cross-encoder
-* Remove unsupported or disputed claims before display and queue uncertain cases for human review
-* Bind each displayed claim to one to three verified citations
-* Visualize retrieval, embeddings, and similarity scores
-* Evaluate system accuracy using a reproducible **JSON-based benchmark**
-* Track **latency and performance metrics** for each query
+## Architecture
 
-This mirrors how real-world RAG systems are built and evaluated in industry.
+The same query contract supports two deliberately different deployment profiles. The public profile is optimized for a free 512 MB host; the full profile demonstrates the production retrieval and verification stack.
 
----
+```mermaid
+flowchart TB
+    User["User or API client"]
 
-## 🧠 Why RAG?
+    subgraph Interfaces["Interfaces"]
+        UI["Streamlit portfolio UI"]
+        API["FastAPI /ask endpoint"]
+    end
 
-Large Language Models (LLMs) are powerful, but they **hallucinate** when asked about private or unseen data. RAG solves this by:
+    User --> UI
+    User --> API
+    UI --> QueryService["Shared query service"]
+    API --> QueryService
+    QueryService --> Profile{"Deployment profile"}
 
-1. Retrieving relevant document chunks
-2. Injecting only those chunks into the LLM prompt
-3. Generating answers **grounded in sources**
+    subgraph Public["Public free profile · Render 512 MB"]
+        PublicStore["Prebuilt sanitized corpus"] --> PublicBM25["BM25 retrieval"]
+        PublicBM25 --> Evidence["Top evidence chunks"]
+        Evidence --> Budget{"Provider budget available?"}
+        Budget -->|Yes| Groq["Groq exact-evidence selection"]
+        Budget -->|No, timeout, quota, or invalid output| Extract["Deterministic extraction"]
+        Groq --> Exact["Exact substring + citation guards"]
+        Extract --> Exact
+    end
 
-This system enforces grounding and provides citations so answers are **verifiable and trustworthy**.
+    subgraph Full["Full production profile · local or scalable deployment"]
+        Sources["PDF, DOCX, HTML, Markdown, text"] --> Parse["Parse, sanitize, and chunk"]
+        Parse --> Dense["Dense retrieval · pgvector"]
+        Parse --> Lexical["BM25 lexical retrieval"]
+        Dense --> Fusion["Reciprocal-rank fusion"]
+        Lexical --> Fusion
+        Fusion --> Rerank["MiniLM cross-encoder reranking"]
+        Rerank --> Draft["Query-aware answer drafting"]
+        Draft --> Verify["DeBERTa NLI + deterministic guards"]
+    end
 
----
+    Profile -->|LOW_MEMORY_DEMO=true| PublicBM25
+    Profile -->|Full profile| Fusion
+    Exact --> Output["Answer, citations, trace, and generation metadata"]
+    Verify --> Output
 
-## 🏗️ System Architecture
-
-```
-PDF Documents
-      │
-      ▼
-Document Loader (PDF → Text)
-      │
-      ▼
-Token-based Chunking (300–500 tokens, overlap)
-      │
-      ▼
-Embedding Model (SentenceTransformers)
-      │
-      ▼
-FAISS Vector Index (Cosine Similarity)
-      │
-      ▼
-Retriever (Top-K / MMR)
-      │
-      ▼
-Prompt Construction (Context + Rules)
-      │
-      ▼
-Structured Groq / extractive claims
-      │
-      ▼
-Local NLI + conflict verification
-      │
-      ▼
-Supported claims + evidence + metrics
+    QueryService -. "privacy-safe spans and metrics" .-> Telemetry["OpenTelemetry / OTLP when configured"]
+    Verify -. "uncertain cases" .-> Review["Human review queue"]
 ```
 
----
+### Full deployment topology
 
-## 🖥️ User Interface (Streamlit)
-
-The full profile includes a **multi-page interactive Streamlit app**. The hosted public profile exposes only the four visitor-facing pages described above.
-
-### 1️⃣ What is RAG?
-
-* Client-friendly explanation of LLMs and hallucinations
-* Step-by-step overview of the RAG pipeline
-
-### 2️⃣ Ingest & Index
-
-* Upload structured documents or load the public benchmark corpus
-* Configure parent/child chunking and optional cached Groq context
-* Inspect background-job stages, warnings, retries, versions, and duplicate outcomes
-* Preview heading paths, tables, contextual prefixes, and stable chunk IDs
-* Soft-delete documents with immediate dense and lexical index propagation
-
-### 3️⃣ Ask & Explain
-
-* Ask natural language questions
-* View retrieved chunks and similarity scores
-* See the exact context sent to the LLM
-* Inspect accepted and removed claims, evidence scores, conflicts, and strict abstentions
-* Answers contain only claim-bound verified citations
-
-### 4️⃣ Embedding Explorer
-
-* 2D visualization of chunk embeddings using **UMAP**
-* Shows semantic clustering of document content
-
-### 5️⃣ Evaluation
-
-* Upload a JSON evaluation set
-* Measure accuracy automatically
-* Inspect failure cases
-
-### 6️⃣ Latency Dashboard
-
-* Track retrieval time, generation time, total latency
-* View performance trends across queries
-
-### 7️⃣ Grounding Review
-
-* Resolve disputed and low-confidence claim/evidence cases
-* Compare cited and conflicting passages
-* Export append-only reviewer labels as JSONL
-
----
-
-## 📊 Evaluation Methodology
-
-> The advanced implementation roadmap is maintained in [docs/ADVANCED_BUILD_PLAN.md](docs/ADVANCED_BUILD_PLAN.md).
-
-## Portable production profile
-
-The repository now includes an opt-in production profile built around PostgreSQL row-level security, pgvector, Redis/RQ workers, envelope-encrypted S3 storage, generic OIDC, scoped API keys, quotas, and immutable release evidence. Streamlit becomes an API-only frontend in this mode; tenant identity is always derived from the authenticated credential.
-
-See [docs/PRODUCTION_PLATFORM.md](docs/PRODUCTION_PLATFORM.md) for deployment and migration guidance and [docs/RELEASE_CLOSURE.md](docs/RELEASE_CLOSURE.md) for the quality, security, backup, and authorized history-rewrite procedure. The local reference stack starts with:
-
-```bash
-python scripts/generate_dev_secrets.py
-docker compose build
-docker compose up -d
+```mermaid
+flowchart LR
+    Browser["Browser"] --> Keycloak["Keycloak · OIDC / PKCE"]
+    Browser --> Streamlit["Streamlit UI"]
+    Streamlit --> API["FastAPI service"]
+    API --> Postgres[("PostgreSQL + pgvector")]
+    API --> Redis[("Redis cache + queue")]
+    API --> MinIO[("MinIO object storage")]
+    API --> Keycloak
+    Worker["Background worker"] --> Redis
+    Worker --> Postgres
+    Worker --> MinIO
+    Migration["One-shot migration job"] --> Postgres
 ```
 
-The full profile retains `hybrid_rerank`. The QA-remediation candidate clears the retrieval and
-grounding gates in a complete local diagnostic; release still requires the authoritative Python
-3.11/Docker/security workflow and a committed promoted artifact. The public 512 MB profile never
-loads the embedding, reranking, or NLI models.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for trust boundaries, ingestion, retrieval, grounding, identity, observability, and failure-mode diagrams.
 
-The system supports **reproducible evaluation** using a JSON file:
+## Two profiles, one reliability contract
 
-```json
-[
-  {"question": "What is the purpose of the document?", "expected": "purpose"},
-  {"question": "What technology is used?", "expected": "faiss"}
-]
+| Capability | Public hosted profile | Full profile |
+| --- | --- | --- |
+| Primary goal | Fast, safe portfolio demo on free infrastructure | Production-style RAG platform demonstration |
+| Retrieval | BM25 | Dense + BM25 + reciprocal-rank fusion |
+| Reranking | Disabled to protect memory | MiniLM cross-encoder |
+| Generation | Groq selects up to two exact evidence sentences | Query-aware drafting with configurable providers |
+| Provider failure | Deterministic extraction; query still completes | Configurable fallback and verification policy |
+| Grounding | Exact-substring and citation guards | DeBERTa NLI, premise windows, semantic support, and deterministic guards |
+| Storage | Prebuilt read-only public corpus | PostgreSQL/pgvector, Redis, and MinIO |
+| Identity | Public read-only experience | Keycloak OIDC with RBAC |
+| Admin and uploads | Not exposed | Authenticated workspaces |
+
+## Measured release evidence
+
+The project does not promote a quality policy from a single happy-path query. Its frozen evaluation set contains **112 questions**, including **25 unanswerable questions (22.3%)**, plus contradiction, hard-negative, identifier, and retention cases.
+
+The committed release artifact reports:
+
+| Gate | Result | Release requirement |
+| --- | ---: | ---: |
+| Retrieval MRR | **0.952** | ≥ 0.85 |
+| Retrieval nDCG@5 | **0.950** | ≥ 0.85 |
+| Grounding macro F1 | **0.901** | ≥ 0.85 |
+| Supported precision | **1.000** | ≥ 0.95 |
+| Contradiction recall | **1.000** | ≥ 0.85 |
+| Citation validity | **100%** | 100% |
+| Unsupported claims exposed | **0** | 0 |
+| Verification p95 | **400 ms** | < 1.5 s |
+| Answer-accuracy delta | **0.000** | ≥ -0.02 |
+| Abstention delta | **0.000** | ≥ -0.01 |
+
+The promoted full-profile retrieval strategy remains `hybrid_rerank`. The hosted free profile intentionally uses BM25, so these full-profile benchmark numbers are presented as release evidence—not as a claim that the free profile runs the same models.
+
+Source: [docs/benchmarks/quality-gate-reference.json](docs/benchmarks/quality-gate-reference.json). Methodology and decisions: [docs/QUALITY_GATE_RELEASE.md](docs/QUALITY_GATE_RELEASE.md).
+
+## Reliability and safety controls
+
+- **Shared query service:** Streamlit and FastAPI use the same retrieval, generation, verification, telemetry, and fallback policy.
+- **Bounded public inputs:** questions are capped at 500 characters, retrieval at six chunks, and provider context at 12,000 characters.
+- **Exact-evidence generation:** every provider-selected claim must be an exact normalized substring of its cited chunk.
+- **Fail-closed validation:** one invalid claim rejects the complete provider draft and activates the local extractor.
+- **Quota-aware degradation:** global, per-session, daily, and concurrency budgets prevent accidental provider exhaustion.
+- **Circuit breaker:** quota and provider failures temporarily bypass external generation while retrieval remains available.
+- **Prompt-injection defense:** ingestion sanitization and suspicious-content metadata keep document instructions outside the control plane.
+- **Grounded abstention:** missing or conflicting evidence produces an explicit refusal instead of an invented answer.
+- **Privacy-safe telemetry:** spans never attach raw questions, prompts, evidence, API keys, or user identifiers.
+- **Secure full profile:** OIDC/PKCE, RBAC, CSRF defenses, tenant scoping, security headers, audit events, and encrypted integration secrets.
+
+## Observability and cost awareness
+
+OpenTelemetry spans cover parsing, chunking, embedding, retrieval, fusion, reranking, generation, verification, and complete queries. Export occurs only when an OTLP endpoint is configured; the public Render service has no telemetry egress by default.
+
+Generation metadata includes provider, model, fallback reason, and input/output/cached/total tokens. Context-cache, embedding-cache, and verifier-token-cache hits are tracked separately. Cost rates are configuration-driven; the free public profile displays a zero-dollar estimate instead of hardcoding vendor prices.
+
+## Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| UI and API | Streamlit, FastAPI, Pydantic |
+| Retrieval | BM25, sentence-transformer embeddings, pgvector, reciprocal-rank fusion |
+| Reranking | MiniLM cross-encoder |
+| Grounding | `cross-encoder/nli-deberta-v3-xsmall`, lexical/identifier/number guards |
+| Public generation | Groq `openai/gpt-oss-20b` with deterministic extraction fallback |
+| Data services | PostgreSQL, Redis, MinIO |
+| Identity and security | Keycloak, OAuth 2.0 / OIDC, PKCE, RBAC |
+| Observability | OpenTelemetry, structured metrics, configurable OTLP export |
+| Delivery | Docker, Docker Compose, GitHub Actions, Render Blueprint |
+
+## Run the public profile locally
+
+### 1. Create the environment
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements-public.txt
 ```
 
-The evaluator supports the original `expected` phrase format and an advanced schema with `reference_answer`, gold `relevant_chunk_ids`, `answerable`, and `category` fields. Each run now reports:
+### 2. Configure the lightweight profile
 
-* Deterministic answer accuracy
-* Retrieval hit rate, Recall@k, Recall@5, Precision@k, MRR, nDCG@k, and nDCG@5 when gold chunks are labeled
-* Citation validity against retrieved chunks
-* Correct abstention on unanswerable questions
-* Displayed-claim support, claim citation coverage, answer coverage, conflicts, and verification p50/p95
-
-Start with `data/eval_set.example.json` and replace its placeholder references with manually verified labels from your corpus.
-
-For a complete reproducible demo, enable **Use bundled sanitized demo corpus** on the ingestion page, build the index with the default chunk settings, then upload `data/public_demo_benchmark.json` on the Evaluation page. Its **112 labeled questions** span six categories against 60 single-chunk knowledge cards; 25 questions are unanswerable (**22.3%**) to measure safe abstention. The original six-card corpus remains available under `data/public_demo_small/`.
-
-The default Evaluation comparison is `hybrid_rrf` versus `hybrid_rerank`. It writes schema 3.3 manifests with retrieval and grounding policy fingerprints, source-tree and runtime metadata, per-question results, stage latency, category slices, and a portfolio comparison artifact. See [the reranking benchmark methodology](docs/RERANKING_BENCHMARK.md), [the claim-grounding methodology](docs/CLAIM_LEVEL_GROUNDING.md), and [the release quality procedure](docs/QUALITY_GATE_RELEASE.md). Neither reranking nor grounding is claimed as an improvement until a retained CPU run passes its promotion gate.
-
-The original baseline accuracy remains:
-
-```
-accuracy = correct_answers / total_questions
+```powershell
+$env:LOW_MEMORY_DEMO = "true"
+$env:SECURITY_MODE = "demo"
+$env:PUBLIC_GENERATION_ENABLED = "true"
+$env:GROQ_API_KEY = "optional"
 ```
 
-Evaluation results are saved to disk and displayed in the UI.
+`GROQ_API_KEY` is optional. Without it, the same query path uses deterministic exact extraction and clearly labels the fallback in the UI.
 
----
+### 3. Build the demo index and start the app
 
-## ⚡ Performance & Latency
-
-For every query, the system logs:
-
-* Dense, lexical, fusion, and reranking stage latency
-* Generation latency (Groq)
-* Claim verification latency and accepted/rejected/conflict counts
-* Total end-to-end latency
-* Groq input, output, cached, and total tokens plus configurable estimated cost
-* Context, embedding, and verifier-token cache hits and misses
-* Privacy-safe OpenTelemetry spans when an OTLP endpoint is explicitly configured
-
-This allows comparison between:
-
-* Baseline vs tuned retrieval
-* Different Top-K values
-* Dense, MMR, hybrid RRF, and reranked hybrid retrieval
-
----
-
-## 🛠️ Tech Stack
-
-**Backend / ML**
-
-* Python
-* FAISS (vector database)
-* SentenceTransformers (embeddings)
-* DeBERTa-v3 xsmall NLI cross-encoder (local claim verification)
-* MiniLM cross-encoder (local reranking)
-* GroqCloud API with `openai/gpt-oss-20b` (LLM)
-
-**Frontend**
-
-* Streamlit
-* Plotly (visualizations)
-
-**Evaluation & Ops**
-
-* JSON-based benchmarks
-* Privacy-safe SQLite metrics (query hashes and lengths, never raw query text)
-* OpenTelemetry spans with opt-in OTLP export
-* Latency, token, configurable cost, and cache-hit tracking
-
----
-
-## 📁 Project Structure
-
-```
-rag-studio/
-│
-├── app/                # Streamlit UI
-│   ├── Home.py
-│   └── pages/
-│       ├── 1_What_is_RAG.py
-│       ├── 2_Ingest_and_Index.py
-│       ├── 3_Ask_and_Explain.py
-│       ├── 4_Embedding_Explorer.py
-│       ├── 5_Evaluation.py
-│       └── 6_Latency_Dashboard.py
-│
-├── backend/            # Core RAG logic
-│   ├── loaders.py
-│   ├── chunking.py
-│   ├── document_parsers.py
-│   ├── contextual_chunking.py
-│   ├── ingestion_registry.py
-│   ├── ingestion.py
-│   ├── embeddings.py
-│   ├── vectorstore.py
-│   ├── retriever.py
-│   ├── reranker.py
-│   ├── qa.py
-│   ├── eval.py
-│   └── experiments.py
-│
-├── data/               # Input PDFs
-├── index/              # FAISS index (gitignored)
-├── outputs/            # Logs & evaluation reports
-├── requirements.txt
-├── README.md
-└── .env.example
-```
-
----
-
-## ▶️ How to Run Locally
-
-```bash
-# Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Add API key
-cp .env.example .env
-# Add GROQ_API_KEY=your_key_here
-
-# Run app
+```powershell
+python scripts/build_demo_index.py
 streamlit run app/Home.py
 ```
 
-## Deploy
+Open `http://localhost:8501`.
 
-### Docker (recommended)
-
-```bash
-docker build -t explainable-rag-studio .
-docker run --rm -p 8501:8501 -e GROQ_API_KEY=your_key explainable-rag-studio
-```
-
-The image installs Tesseract OCR and exposes the app on port `8501`. Model prefetching is opt-in for the full profile. `render.yaml` builds the sanitized BM25 index into the image, sets `plan: free`, provisions no disk or add-ons, and disables local model downloads. `GROQ_API_KEY` is an optional dashboard-managed secret from a GroqCloud Free-tier project.
-
-Release validation can opt into the real-model smoke test after the model is cached:
-
-```bash
-RUN_RERANKER_SMOKE=1 pytest -q -m slow tests/test_reranker_slow.py
-```
-
-The complete offline release evidence run is headless:
-
-```bash
-python scripts/calibrate_grounding.py --allow-small-fallback
-python scripts/evaluate_grounding_policy.py outputs/grounding_policy.json
-python scripts/run_release_validation.py
-python scripts/run_release_validation.py --validate outputs/releases/<release_id>
-```
-
-### Streamlit Community Cloud
-
-Select `app/Home.py` as the entry point and add `GROQ_API_KEY` in the app's secret settings. The checked-in `.streamlit/config.toml` supplies the production theme and server configuration.
-
-> Full-profile uploads, indexes, and local metrics require durable storage. The hosted public demo has no upload path and intentionally uses an image-baked corpus with no paid persistent disk.
-
----
-
-## 🔐 Security & Best Practices
-
-* `.env` is gitignored (API keys never committed)
-* FAISS index is built locally (not stored in repo)
-* System gracefully falls back to extractive mode if LLM key is missing
-* Context generation falls back to deterministic document metadata if Groq is missing or unavailable
-* Index generations are validated in staging and atomically activated
-
----
-
-## 💼 Why This Project Matters
-
-This project demonstrates:
-
-* Deep understanding of **RAG architectures**
-* Strong **ML engineering discipline** (evaluation, latency, explainability)
-* Ability to **explain complex systems clearly**
-* Production-minded design with graceful fallbacks
-
-It is intentionally built to be **interview-demo ready**.
-
----
-
-## 📌 Future Improvements
-
-* Calibrated domain-specific claim-verifier training
-* LLM-as-judge evaluation
-* Shared storage for multi-instance deployment
-
----
-
-**Author:** Harsh Mahesh Tikone
-**Focus:** AI / ML Engineering, RAG Systems, Applied LLMs
-## Protected deployment
-
-Production-style local deployment is deny-by-default. Set `SECURITY_MODE=required`, generate independent high-entropy values for `API_KEY_PEPPER` and `AUDIT_HMAC_KEY`, and keep both outside source control. Create the first organization and one-time owner key with:
+### Docker equivalent
 
 ```powershell
-python scripts/bootstrap_security.py --organization "Example" --email "owner@example.com"
+docker build --build-arg LOW_MEMORY_DEMO=true --build-arg BUILD_DEMO_INDEX=true -t explainable-rag-studio .
+docker run --rm -p 8501:8501 -e LOW_MEMORY_DEMO=true -e SECURITY_MODE=demo explainable-rag-studio
 ```
 
-The secret is shown once. Indexes, lifecycle jobs, reviews, and caches live under `index/organizations/<organization_id>/`. The bearer key determines the organization; request bodies cannot select or override it.
+## Run the full profile
 
-For a read-only public demonstration, set `SECURITY_MODE=demo`. Anonymous access is limited to the sanitized `org_public` query experience and health checks. Uploads, document inventory, evaluation, review, telemetry, and administration still require a scoped key.
+The full stack adds PostgreSQL/pgvector, Redis, MinIO, Keycloak, the API, worker, and authenticated workspaces.
 
-Security utilities:
+```powershell
+Copy-Item .env.example .env
+docker compose up -d --build
+```
 
-- `python scripts/audit_security.py verify` verifies the append-only audit hash chain.
-- `python scripts/migrate_tenants.py` migrates a provably public legacy index into `org_public`.
-- `python scripts/scan_private_history.py` reports manifest-listed private files still reachable in Git history.
+Then open:
 
-See [docs/security-history-cleanup.md](docs/security-history-cleanup.md) before any history rewrite. The rewrite is intentionally not automated.
+- Streamlit: `http://localhost:8501`
+- FastAPI docs: `http://localhost:8000/docs`
+- Keycloak: `http://localhost:8080`
+- MinIO console: `http://localhost:9001`
+
+For hardened configuration and rollout steps, use [docs/PRODUCTION_PLATFORM.md](docs/PRODUCTION_PLATFORM.md) and [docs/DEPLOYMENT_RUNBOOK.md](docs/DEPLOYMENT_RUNBOOK.md).
+
+## Test and validate
+
+```powershell
+pytest -q
+python scripts/validate_docs.py
+python scripts/validate_public_release.py
+python scripts/run_quality_gate.py
+```
+
+Pull requests to `main` run the Python 3.11 suite, security checks, public UI tests, a real `/ask` smoke test, Docker validation, and retained release-quality checks.
+
+## Repository map
+
+```text
+app/                    Streamlit application and public router
+src/rag_studio/         Retrieval, generation, grounding, security, and API services
+tests/                  Unit, integration, UI, security, and release tests
+scripts/                Indexing, validation, evaluation, and deployment utilities
+docs/                   Architecture, benchmarks, release evidence, and runbooks
+deploy/                 Identity and deployment configuration
+render.yaml             Free-profile Render Blueprint
+docker-compose.yml      Full local platform
+```
+
+## Known limitations
+
+- Render's free service can cold-start and has a strict memory ceiling.
+- The public corpus is intentionally small, sanitized, and read-only.
+- Groq is optional and rate-limited; quota exhaustion is an expected fallback condition, not an outage.
+- Exact-evidence generation favors faithfulness over conversational rewriting.
+- The full hybrid/reranked profile requires more memory and infrastructure than the public demo.
+- Evaluation results describe the committed benchmark and configuration; they are not a universal guarantee for arbitrary corpora.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Claim-level grounding](docs/CLAIM_LEVEL_GROUNDING.md)
+- [Context-aware ingestion](docs/CONTEXT_AWARE_INGESTION.md)
+- [Quality-gate release](docs/QUALITY_GATE_RELEASE.md)
+- [Release closure](docs/RELEASE_CLOSURE.md)
+- [Reranking benchmark](docs/RERANKING_BENCHMARK.md)
+- [Production platform](docs/PRODUCTION_PLATFORM.md)
+- [Threat model](docs/THREAT_MODEL.md)
+- [Deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
+
+---
+
+Built to demonstrate that a RAG system can be useful **and** inspectable: retrieve the evidence, verify the claims, expose the reasoning path, and degrade safely when a provider is unavailable.

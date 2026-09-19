@@ -1,0 +1,36 @@
+1
+00:00:00,000 --> 00:00:18,570
+Explainable RAG Studio is a reliability workbench for retrieval augmented generation. This video uses the live free Render deployment. The hosted profile is deliberately lightweight, while the same repository retains a fuller hybrid and locally verified engineering profile.
+
+2
+00:00:19,320 --> 00:00:49,292
+The public experience starts with a constrained operating profile. It indexes sixty sanitized documents into sixty searchable units, uses lexical BM25 retrieval, and returns only exact evidence. There is no upload path, administrative workspace, local embedding model, reranker, or NLI model on the public service. That keeps the five hundred twelve megabyte Render instance stable and the visitor flow focused.
+
+3
+00:00:50,042 --> 00:01:20,237
+The core workflow separates retrieval from answer selection. BM25 ranks the strongest passages before any provider call. Groq can then select at most two verbatim evidence sentences. The application validates each sentence against its cited chunk. Invalid output, a timeout, a provider failure, or quota exhaustion activates the deterministic local extractor instead. Visitors always see which mode produced the answer.
+
+4
+00:01:20,987 --> 00:01:50,136
+The first tested question asks how long Aegis audit events are retained. The live system returns the exact source sentence containing four hundred days and attaches a stable chunk citation. The claim is accepted only after citation and conflict checks. The interface also exposes retrieval time, generation time, end to end latency, and the verification decision, so a reviewer can trace the answer instead of trusting fluent text.
+
+5
+00:01:50,886 --> 00:02:12,327
+Identifier questions often fail when a system paraphrases aggressively. Here, the Meridian incident query preserves the exact identifier I D twenty twenty six zero fourteen. The answer points back to the incident source, and deterministic guards confirm that every important identifier in the claim exists in the evidence.
+
+6
+00:02:13,077 --> 00:02:36,237
+The hard negative test puts current and obsolete retention values in competition. One document says ninety days, while the current policy says four hundred days. Query aware extraction chooses the current four hundred day evidence and rejects the stale alternative. This test shows why retrieval quality and evidence selection matter as much as generation.
+
+7
+00:02:36,987 --> 00:02:59,723
+The unanswerable question asks for Northstar's manufacturing cost, which the corpus does not contain. The correct behavior is an explicit abstention. The system accepts no claims, returns no citation, and does not turn unrelated Northstar evidence into a confident answer. This is the failure mode the product is designed to make visible.
+
+8
+00:03:00,473 --> 00:03:28,043
+The Results page reports committed release evidence instead of recomputing benchmarks on the free service. The suite contains one hundred twelve versioned questions across six categories, with twenty two point three percent unanswerable coverage. The hosted demo uses BM25 and exact evidence. The full profile retains hybrid reranking and a pinned DeBERTa NLI verifier for engineering and evaluation.
+
+9
+00:03:28,793 --> 00:03:52,817
+The final result is a public RAG demo where every displayed answer traces to evidence, provider fallback is visible, and limitations appear in the product. The live service runs on free Render and free Groq plans. The repository includes the tests, release gates, security controls, observability, and benchmark artifacts behind the experience.
+
