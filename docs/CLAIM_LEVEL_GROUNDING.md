@@ -9,7 +9,7 @@ The implementation is complete, but no quality improvement is claimed until a re
 ## Pipeline
 
 1. Retrieve evidence with any existing retrieval strategy.
-2. Ask Gemini for schema-constrained atomic claims, or copy deterministic extractive sentences when Gemini is unavailable.
+2. Ask Groq for schema-constrained atomic claims, or copy deterministic extractive sentences when Groq is unavailable.
 3. Reject citations that were not retrieved and run number, identifier, version, and negation checks.
 4. Score claim/evidence pairs with `cross-encoder/nli-deberta-v3-xsmall` on CPU.
 5. Score three bounded premises per evidence item: the best atomic sentence, its adjacent
@@ -67,6 +67,6 @@ workflow produces a fully promoted committed artifact.
 
 Normal CI uses deterministic fake verifier scores and does not download the model. Release validation additionally runs the slow real-model smoke test, the 96-case claim benchmark, the 112-question QA benchmark, all four public Streamlit pages, a real deterministic `/ask`, and the Python 3.11 Docker build under the public 512 MB limit. Store the resulting artifact under `outputs/grounding/`; do not promote the milestone based on an unretained terminal run.
 
-The hosted low-memory profile never loads this NLI model. Gemini may select at most two verbatim
+The hosted low-memory profile never loads this NLI model. Groq may select at most two verbatim
 cited evidence sentences, and exact-substring/citation guards either accept the complete draft or
 discard it in favor of deterministic extraction.

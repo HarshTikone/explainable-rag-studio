@@ -24,11 +24,12 @@ def main() -> None:
     env = {entry["key"]: entry.get("value") for entry in service.get("envVars", [])}
     required = {
         "LOW_MEMORY_DEMO": "true", "BUILD_DEMO_INDEX": "true",
-        "PREFETCH_MODELS": "false", "PUBLIC_GEMINI_ENABLED": "true",
-        "GENAI_PRICING_TIER": "free", "DEMO_GEMINI_GLOBAL_RPM": "2",
-        "DEMO_GEMINI_GLOBAL_RPD": "20", "DEMO_GEMINI_SESSION_RPM": "1",
-        "DEMO_GEMINI_SESSION_RPD": "5", "DEMO_GEMINI_TIMEOUT_SECONDS": "12",
-        "DEMO_GEMINI_CIRCUIT_SECONDS": "300", "DEMO_QUESTION_MAX_CHARS": "500",
+        "PREFETCH_MODELS": "false", "PUBLIC_GENERATION_ENABLED": "true",
+        "GENERATION_PROVIDER": "groq", "GENERATION_MODEL": "openai/gpt-oss-20b",
+        "GENAI_PRICING_TIER": "free", "DEMO_PROVIDER_GLOBAL_RPM": "2",
+        "DEMO_PROVIDER_GLOBAL_RPD": "20", "DEMO_PROVIDER_SESSION_RPM": "1",
+        "DEMO_PROVIDER_SESSION_RPD": "5", "DEMO_PROVIDER_TIMEOUT_SECONDS": "12",
+        "DEMO_PROVIDER_CIRCUIT_SECONDS": "300", "DEMO_QUESTION_MAX_CHARS": "500",
         "DEMO_CONTEXT_MAX_CHARS": "12000", "DEMO_TOP_K_MAX": "6",
         "GENAI_INPUT_COST_PER_MILLION_USD": "0",
         "GENAI_OUTPUT_COST_PER_MILLION_USD": "0",
@@ -36,8 +37,8 @@ def main() -> None:
     for key, expected in required.items():
         if str(env.get(key, "")).lower() != expected:
             raise AssertionError(f"{key} must be {expected!r} in render.yaml.")
-    if "GEMINI_API_KEY" not in env:
-        raise AssertionError("GEMINI_API_KEY must be declared as a dashboard-managed secret.")
+    if "GROQ_API_KEY" not in env:
+        raise AssertionError("GROQ_API_KEY must be declared as a dashboard-managed secret.")
     public_requirements = (ROOT / "requirements-public.txt").read_text(encoding="utf-8").casefold()
     for heavyweight in ("sentence-transformers", "transformers==", "torch==", "onnxruntime"):
         if heavyweight in public_requirements:

@@ -8,9 +8,9 @@ This project demonstrates how to build a **production-style RAG Document Q&A sys
 
 [Open Explainable RAG Studio](https://explainable-rag-studio-demo.onrender.com)
 
-The hosted portfolio profile is deliberately small and zero-cost: **BM25 + Gemini-assisted exact evidence** on Render's free 512 MB plan. Gemini may select at most two verbatim cited evidence sentences; invalid output, timeout, quota, or provider failure automatically uses deterministic extraction. The free instance can take roughly one minute to wake after inactivity.
+The hosted portfolio profile is deliberately small and zero-cost: **BM25 + Groq-assisted exact evidence** on Render's free 512 MB plan. Groq may select at most two verbatim cited evidence sentences; invalid output, timeout, quota, or provider failure automatically uses deterministic extraction. The free instance can take roughly one minute to wake after inactivity.
 
-The public navigation contains only Home, What is RAG, Ask & Explain, and read-only Results. Uploads and administrative workspaces are disabled. The visitor's question and sanitized evidence excerpts may be sent to Free-tier Gemini, so do not enter private information. Raw questions, prompts, evidence text, and IP addresses are not retained in application telemetry.
+The public navigation contains only Home, What is RAG, Ask & Explain, and read-only Results. Uploads and administrative workspaces are disabled. The visitor's question and sanitized evidence excerpts may be sent to GroqCloud, so do not enter private information. Raw questions, prompts, evidence text, and IP addresses are not retained in application telemetry.
 
 | Profile | Retrieval | Verification | Intended use |
 |---|---|---|---|
@@ -46,7 +46,7 @@ This short demo walks through:
 * Fuse lexical and semantic rankings using **Reciprocal Rank Fusion**
 * Rerank the top 30 fused candidates with `cross-encoder/ms-marco-MiniLM-L-6-v2`
 * Track stable document versions, duplicate checks, background ingestion jobs, retries, and soft deletion
-* Generate atomic answer claims with Gemini or a deterministic extractive fallback
+* Generate atomic answer claims with Groq or a deterministic extractive fallback
 * Verify every claim locally with deterministic guards and a CPU NLI cross-encoder
 * Remove unsupported or disputed claims before display and queue uncertain cases for human review
 * Bind each displayed claim to one to three verified citations
@@ -94,7 +94,7 @@ Retriever (Top-K / MMR)
 Prompt Construction (Context + Rules)
       │
       ▼
-Structured Gemini / extractive claims
+Structured Groq / extractive claims
       │
       ▼
 Local NLI + conflict verification
@@ -117,7 +117,7 @@ The full profile includes a **multi-page interactive Streamlit app**. The hosted
 ### 2️⃣ Ingest & Index
 
 * Upload structured documents or load the public benchmark corpus
-* Configure parent/child chunking and optional cached Gemini context
+* Configure parent/child chunking and optional cached Groq context
 * Inspect background-job stages, warnings, retries, versions, and duplicate outcomes
 * Preview heading paths, tables, contextual prefixes, and stable chunk IDs
 * Soft-delete documents with immediate dense and lexical index propagation
@@ -213,10 +213,10 @@ Evaluation results are saved to disk and displayed in the UI.
 For every query, the system logs:
 
 * Dense, lexical, fusion, and reranking stage latency
-* Generation latency (Gemini)
+* Generation latency (Groq)
 * Claim verification latency and accepted/rejected/conflict counts
 * Total end-to-end latency
-* Gemini input, output, cached, and total tokens plus configurable estimated cost
+* Groq input, output, cached, and total tokens plus configurable estimated cost
 * Context, embedding, and verifier-token cache hits and misses
 * Privacy-safe OpenTelemetry spans when an OTLP endpoint is explicitly configured
 
@@ -237,7 +237,7 @@ This allows comparison between:
 * SentenceTransformers (embeddings)
 * DeBERTa-v3 xsmall NLI cross-encoder (local claim verification)
 * MiniLM cross-encoder (local reranking)
-* Gemini API (LLM)
+* GroqCloud API with `openai/gpt-oss-20b` (LLM)
 
 **Frontend**
 
@@ -305,7 +305,7 @@ pip install -r requirements.txt
 
 # Add API key
 cp .env.example .env
-# Add GEMINI_API_KEY=your_key_here
+# Add GROQ_API_KEY=your_key_here
 
 # Run app
 streamlit run app/Home.py
@@ -317,10 +317,10 @@ streamlit run app/Home.py
 
 ```bash
 docker build -t explainable-rag-studio .
-docker run --rm -p 8501:8501 -e GEMINI_API_KEY=your_key explainable-rag-studio
+docker run --rm -p 8501:8501 -e GROQ_API_KEY=your_key explainable-rag-studio
 ```
 
-The image installs Tesseract OCR and exposes the app on port `8501`. Model prefetching is opt-in for the full profile. `render.yaml` builds the sanitized BM25 index into the image, sets `plan: free`, provisions no disk or add-ons, and disables local model downloads. `GEMINI_API_KEY` is an optional dashboard-managed secret from a dedicated unbilled Free-tier project.
+The image installs Tesseract OCR and exposes the app on port `8501`. Model prefetching is opt-in for the full profile. `render.yaml` builds the sanitized BM25 index into the image, sets `plan: free`, provisions no disk or add-ons, and disables local model downloads. `GROQ_API_KEY` is an optional dashboard-managed secret from a GroqCloud Free-tier project.
 
 Release validation can opt into the real-model smoke test after the model is cached:
 
@@ -339,7 +339,7 @@ python scripts/run_release_validation.py --validate outputs/releases/<release_id
 
 ### Streamlit Community Cloud
 
-Select `app/Home.py` as the entry point and add `GEMINI_API_KEY` in the app's secret settings. The checked-in `.streamlit/config.toml` supplies the production theme and server configuration.
+Select `app/Home.py` as the entry point and add `GROQ_API_KEY` in the app's secret settings. The checked-in `.streamlit/config.toml` supplies the production theme and server configuration.
 
 > Full-profile uploads, indexes, and local metrics require durable storage. The hosted public demo has no upload path and intentionally uses an image-baked corpus with no paid persistent disk.
 
@@ -350,7 +350,7 @@ Select `app/Home.py` as the entry point and add `GEMINI_API_KEY` in the app's se
 * `.env` is gitignored (API keys never committed)
 * FAISS index is built locally (not stored in repo)
 * System gracefully falls back to extractive mode if LLM key is missing
-* Context generation falls back to deterministic document metadata if Gemini is missing or unavailable
+* Context generation falls back to deterministic document metadata if Groq is missing or unavailable
 * Index generations are validated in staging and atomically activated
 
 ---

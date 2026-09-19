@@ -5,7 +5,7 @@ from backend.config import SETTINGS
 from backend.embeddings import Embedder
 from backend.review_registry import ReviewRegistry
 from backend.generation_usage import generation_badge
-from backend.query_service import PublicDemoPolicyError, create_gemini_client, run_query
+from backend.query_service import PublicDemoPolicyError, create_generation_client, run_query
 from app._bootstrap import bootstrap
 bootstrap()
 from app.ui import configure_page, footer, page_header, section, status_pills
@@ -31,7 +31,7 @@ if not loaded:
         st.warning("No index found. Go to “Ingest & Index” first.")
     st.stop()
 
-generator_label = "Gemini-assisted" if SETTINGS.low_memory_demo and SETTINGS.gemini_api_key.strip() else ("Exact extractive fallback" if SETTINGS.low_memory_demo else ("Gemini" if SETTINGS.gemini_api_key.strip() else "Extractive fallback"))
+generator_label = "Groq-assisted" if SETTINGS.groq_api_key.strip() else "Exact extractive fallback"
 status_pills([("Index online", True), (f"{len(store.meta.get('items', [])):,} chunks", True), (generator_label, True)])
 
 section("Try the demo", "Choose a tested prompt or ask your own question about the sanitized corpus.")
@@ -64,22 +64,21 @@ else:
 
 question = st.text_area("Your question", key="demo_question", height=120, max_chars=SETTINGS.demo_question_max_chars if SETTINGS.low_memory_demo else 4000, placeholder="What does the evidence say about…?")
 
-gemini_client = None
-gemini_model = SETTINGS.gemini_model
+generation_client = None
 review_registry = ReviewRegistry(str(tenant_dir(security) / "reviews.db"))
 
-# Init Gemini client
-if SETTINGS.gemini_api_key.strip():
+# Initialize the configured provider without exposing its secret.
+if SETTINGS.groq_api_key.strip():
     try:
-        gemini_client = create_gemini_client()
+        generation_client = create_generation_client()
     except Exception:
-        st.warning("Gemini API key detected but client initialization failed.")
+        st.warning("Groq API key detected but client initialization failed.")
 else:
-    st.info("No Gemini API key found — using extractive fallback.")
+    st.info("No Groq API key found — using extractive fallback.")
 
 if SETTINGS.low_memory_demo:
-    st.info("Gemini may select up to two verbatim evidence sentences. If it is unavailable or over quota, the same query continues with a local exact-evidence fallback.")
-    st.caption("Privacy: your question and sanitized evidence excerpts may be sent to Google's Free-tier Gemini service. Do not enter personal, confidential, or proprietary information. Raw questions are never stored.")
+    st.info("Groq may select up to two verbatim evidence sentences. If it is unavailable or over quota, the same query continues with a local exact-evidence fallback.")
+    st.caption("Privacy: your question and sanitized evidence excerpts may be sent to GroqCloud. Do not enter personal, confidential, or proprietary information. Raw questions are never stored by this application.")
 
 
 # If no key is actually available, requests will fail; we detect that at runtime and fallback.
@@ -96,7 +95,7 @@ if st.button("Run grounded query", type="primary", disabled=not question.strip()
             scope=RetrievalScope.from_context(security),
             review_registry=review_registry,
             client_key=st.session_state.demo_session_id,
-            gemini_client=gemini_client,
+            generation_client=generation_client,
             organization_id=security.organization_id,
             actor_user_id=security.user_id,
         )
@@ -108,7 +107,7 @@ if st.button("Run grounded query", type="primary", disabled=not question.strip()
     label = generation_badge(generation)
     status_pills([(label, not generation.get("fallback_used", False))])
     if generation.get("fallback_used"):
-        st.caption(f"Gemini was skipped: {generation.get('fallback_reason', 'fallback')}. Your answer was still produced locally.")
+        st.caption(f"Groq was skipped: {generation.get('fallback_reason', 'fallback')}. Your answer was still produced locally.")
 
     section("Grounded answer", "Generated from the retrieved context below.")
     with st.container(border=True): st.markdown(out["answer"])

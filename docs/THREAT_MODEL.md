@@ -3,7 +3,7 @@
 Scope: the multi-tenant RAG platform as deployed by `docker-compose.yml` (`PLATFORM_MODE=postgres`).
 Assets in scope: tenant document content, tenant query/answer history, API keys and OIDC tokens,
 the audit log, and the LLM's context window (since ingested content becomes part of every future
-prompt for that tenant). Out of scope: the underlying cloud/host infrastructure, and Gemini's own
+prompt for that tenant). Out of scope: the underlying cloud/host infrastructure, and Groq's own
 model-side safety behavior — this document covers what this codebase controls.
 
 Each threat below cites the control that mitigates it and the test that verifies it, so this stays
@@ -15,7 +15,7 @@ listed as one — see [Known gaps](#known-gaps).
 ```
 Untrusted                    │  Trusted (this platform)               │  Trusted (external)
 ──────────────────────────── │ ─────────────────────────────────────  │ ────────────────────
-Uploaded documents           │  api / worker / streamlit containers   │  Gemini API
+Uploaded documents           │  api / worker / streamlit containers   │  GroqCloud API
 Query text (any tenant)      │  Postgres (RLS-enforced per-tenant)    │  Keycloak (OIDC)
 API requests (any caller)    │  MinIO (envelope-encrypted per-object) │
 ```

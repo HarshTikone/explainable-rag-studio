@@ -64,7 +64,7 @@ st.markdown("""
 | Capability | Free hosted demo | Full platform |
 |---|---|---|
 | Retrieval | BM25 | Dense + BM25 + reranking |
-| Answer selection | Gemini-assisted verbatim evidence with local fallback | Structured Gemini or extractive drafts |
+| Answer selection | Groq-assisted verbatim evidence with local fallback | Structured provider or extractive drafts |
 | Verification | Exact evidence + deterministic guards | Pinned local NLI + deterministic guards |
 | Purpose | Stable public walkthrough on 512 MB | Evaluation, security, and production evidence |
 """)
@@ -72,7 +72,7 @@ st.markdown("""
 section("Known limitations", "These are release constraints, not hidden footnotes.")
 limitations = [
     "Render's free instance can take roughly a minute to wake after inactivity.",
-    "Free-tier Gemini is allowance-limited; quota, invalid selections, and provider failures use the local exact-evidence fallback.",
+    "Free-tier Groq is allowance-limited; quota, invalid selections, and provider failures use the local exact-evidence fallback.",
     "The public profile intentionally hides ingestion and administrative workspaces.",
 ]
 if overall:
