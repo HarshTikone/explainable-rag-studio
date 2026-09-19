@@ -11,7 +11,7 @@ honest.
 ## The threat model isn't "can the LLM be jailbroken"
 
 The interesting attack surface for a RAG platform isn't a user typing a clever jailbreak into the
-chat box — that's a generic LLM problem, largely out of this codebase's control, and Gemini's own
+chat box — that's a generic LLM problem, largely out of this codebase's control, and Groq's own
 safety behavior is explicitly out of scope for `docs/THREAT_MODEL.md`. The RAG-specific surface is:
 
 - **Indirect prompt injection**: an attacker doesn't need to type anything — they upload a

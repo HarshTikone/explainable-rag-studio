@@ -17,7 +17,7 @@ The reranker is CPU-only, lazy-loaded, uses batches of 16, and limits each query
 - Questions: 60 labeled examples, with 10 each for exact-term, identifier, paraphrase, hard-negative, multi-hop, and unanswerable categories.
 - Hard negatives: overlapping current and retired procedures, similar incidents, exact identifiers, and version-specific facts.
 - Labels: relevant chunk IDs, reference answers, answerability, and expected source versions.
-- Generator: optional. Retrieval evaluation runs with the deterministic extractive fallback and does not require a Gemini key.
+- Generator: optional. Retrieval evaluation runs with the deterministic extractive fallback and does not require a provider key.
 
 ## Reproduction procedure
 

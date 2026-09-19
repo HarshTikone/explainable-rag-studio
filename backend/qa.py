@@ -33,9 +33,10 @@ def extractive_answer(question: str, retrieved_items) -> str:
 def answer_with_optional_llm(
     question: str,
     retrieved_items,
-    use_gemini: bool,
-    gemini_client=None,
-    gemini_model: str = "",
+    use_provider: bool,
+    generation_client=None,
+    generation_model: str = "",
+    generation_provider: str = "groq",
     verifier=None,
     review_registry: ReviewRegistry | None = None,
     persist_review: bool = True,
@@ -59,7 +60,7 @@ def answer_with_optional_llm(
     generation = {
         "mode": "exact_extractive_fallback", "provider": "local",
         "model": "deterministic-extractive", "fallback_used": True,
-        "fallback_reason": "gemini_not_requested",
+        "fallback_reason": "provider_not_requested",
         "usage": usage_from_response(None),
     }
 
@@ -68,14 +69,14 @@ def answer_with_optional_llm(
         generation["fallback_reason"] = "draft_override"
     elif not legacy:
         draft = build_extractive_draft([], max_claims=extractive_max_claims, question=question)
-    elif use_gemini and gemini_client is not None:
+    elif use_provider and generation_client is not None:
         try:
             with span("rag.generate", {
-                "gen_ai.system": "google", "gen_ai.request.model": gemini_model,
+                "gen_ai.system": generation_provider, "gen_ai.request.model": generation_model,
                 "rag.generation.mode": "structured",
             }) as generation_span:
                 draft, response = generate_structured_draft_with_response(
-                    question, retrieved_items, gemini_client, gemini_model
+                    question, retrieved_items, generation_client, generation_model
                 )
                 usage = usage_from_response(response)
                 set_span_attributes(generation_span, {
@@ -84,7 +85,8 @@ def answer_with_optional_llm(
                     "gen_ai.usage.cached_tokens": usage["cached_tokens"],
                 })
             generation = {
-                "mode": "gemini_structured", "provider": "google", "model": gemini_model,
+                "mode": f"{generation_provider}_structured", "provider": generation_provider,
+                "model": generation_model,
                 "fallback_used": False, "fallback_reason": "",
                 "usage": usage,
             }

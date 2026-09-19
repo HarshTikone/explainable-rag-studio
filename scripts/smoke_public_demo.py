@@ -34,7 +34,7 @@ def main() -> None:
         value = run_query(
             store=store, question=question, top_k=min(6, SETTINGS.demo_top_k_max),
             strategy="lexical", scope=scope, review_registry=reviews,
-            client_key="release-smoke", gemini_client=None,
+            client_key="release-smoke", generation_client=None,
             organization_id=SETTINGS.public_organization_id,
             actor_user_id="release-smoke",
         )

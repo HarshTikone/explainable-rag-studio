@@ -77,7 +77,7 @@ def build_contextual_chunks(
             if context_enhancer:
                 enhanced = normalize_text(context_enhancer(prefix, text) or "")
                 if enhanced:
-                    prefix, provenance = enhanced, "gemini_cached"
+                    prefix, provenance = enhanced, "provider_cached"
             chunk_id = "chk_" + _digest(document.document_id, parent.heading_path, parent.ordinal, child_ordinal, text)
             retrieval_text = f"{prefix}\n\n{text}"
             parent_excerpt = parent.text[:2400]

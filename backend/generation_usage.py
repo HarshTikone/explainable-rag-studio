@@ -13,8 +13,8 @@ def generation_badge(generation: Dict[str, Any]) -> str:
     }
     if generation.get("fallback_reason") in quota_reasons:
         return "Quota fallback"
-    if generation.get("mode") in {"gemini_assisted_exact_evidence", "gemini_structured"}:
-        return "Gemini-assisted"
+    if generation.get("mode") in {"groq_assisted_exact_evidence", "groq_structured"}:
+        return "Groq-assisted"
     return "Exact extractive fallback"
 
 

@@ -66,7 +66,7 @@ Duration: 2 weeks
 
 - ✅ Add DOCX, Markdown, HTML, scanned-PDF OCR, and table extraction.
 - ✅ Introduce heading-aware and parent-child chunking.
-- ✅ Generate deterministic and optional cached Gemini context using document and section metadata.
+- ✅ Generate deterministic and optional cached external-provider context using document and section metadata.
 - ✅ Add source checksum, deduplication, versioning, incremental update, and delete propagation.
 - ✅ Record parser, chunker, context, embedding, dependency, and schema versions in the index manifest.
 - ✅ Move ingestion to SQLite-backed background jobs with visible progress and retry states.
@@ -106,8 +106,8 @@ Duration: 2 weeks
 
 - ✅ Replace local-only metadata with PostgreSQL and pgvector behind a storage interface; keep FAISS for the lightweight local profile.
 - ✅ Add async ingestion workers, idempotency keys, streaming answers, timeouts, retries, rate limits, authentication, and API versioning.
-- ✅ Instrument parsing, chunking, embedding, retrieval, fusion, reranking, Gemini generation, grounding verification, and complete queries with OpenTelemetry. OTLP export is opt-in and spans exclude raw questions, prompts, evidence, keys, and user identifiers (`backend/observability.py`).
-- ✅ Track p50/p95/p99 latency, Gemini input/output/cached/total tokens, configurable estimated cost, generation/fallback state, and aggregate context/embedding/verifier cache hits and misses. The public Free profile uses explicit zero-dollar estimate rates; reviewer feedback remains append-only (`backend/telemetry.py`, `backend/generation_usage.py`).
+- ✅ Instrument parsing, chunking, embedding, retrieval, fusion, reranking, external generation, grounding verification, and complete queries with OpenTelemetry. OTLP export is opt-in and spans exclude raw questions, prompts, evidence, keys, and user identifiers (`backend/observability.py`).
+- ✅ Track p50/p95/p99 latency, provider input/output/cached/total tokens, configurable estimated cost, generation/fallback state, and aggregate context/embedding/verifier cache hits and misses. The public Free profile uses explicit zero-dollar estimate rates; reviewer feedback remains append-only (`backend/telemetry.py`, `backend/generation_usage.py`).
 - ✅ Add database migrations (Alembic, `deploy/postgres/`), backups (`scripts/platform_backup.py`/`restore_validate.py`, exercised in CI), restore documentation, load tests (`scripts/load_test.py`, new this session), and deployment runbooks (`docs/DEPLOYMENT_RUNBOOK.md`, new this session).
 
 Exit gate: the container passes health checks (✅, CI-verified), load targets (⚠️ the report runs in CI but still lacks a defensible historical promotion threshold), migration tests (✅), and a documented recovery exercise (✅). OpenTelemetry and token/cost/cache metrics are implemented; the remaining release blocker is the independent grounding gate.
@@ -131,7 +131,7 @@ Duration: 1 week
   retrieval. Script written (`docs/DEMO_WALKTHROUGH_SCRIPT.md`); the actual recording needs a
   human at a keyboard, not something this session can produce.
 - ⚠️ Publish a live sanitized demo and OpenAPI documentation. A Render Free service exists at
-  `https://explainable-rag-studio-demo.onrender.com`; the focused BM25/Gemini exact-evidence release
+  `https://explainable-rag-studio-demo.onrender.com`; the focused BM25/Groq exact-evidence release
   is implemented but must not replace the current live build until its grounding and PR gates pass.
 
 ## Milestone 6.5 — Close the outstanding quality gates (attempted 2026-09-12)

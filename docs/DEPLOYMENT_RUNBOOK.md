@@ -118,8 +118,8 @@ exactly this use case.
    `free` plan. The 512 MB service uses BM25 retrieval plus exact-evidence grounding and does not
    load the dense embedding, reranking, or semantic NLI models. The full local-model stack remains
    the default everywhere else; this setting is deliberately scoped to the cost-free public demo.
-3. `GEMINI_API_KEY` is an optional dashboard-managed secret (`sync: false`) from a dedicated
-   project with no linked billing. In low-memory mode Gemini may select at most two verbatim cited
+3. `GROQ_API_KEY` is an optional dashboard-managed secret (`sync: false`) from a GroqCloud
+   Free-tier project. In low-memory mode Groq may select at most two verbatim cited
    evidence sentences. One call is allowed per query with a 12-second timeout; invalid output,
    timeout, quota, or provider failure falls back to deterministic extraction. Global limits are
    2 calls/minute and 20/day, per-session limits are 1/minute and 5/day, concurrency is one, and a

@@ -17,9 +17,9 @@ page_header(
     "Ask a tested question, inspect ranked evidence and citations, and review the measured quality of the full platform.",
 )
 if SETTINGS.low_memory_demo:
-    mode_label = "BM25 + Gemini-assisted exact evidence" if SETTINGS.gemini_api_key.strip() else "BM25 + exact extractive fallback"
+    mode_label = "BM25 + Groq-assisted exact evidence" if SETTINGS.groq_api_key.strip() else "BM25 + exact extractive fallback"
 else:
-    mode_label = "Gemini connected" if SETTINGS.gemini_api_key.strip() else "Extractive mode"
+    mode_label = "Groq connected" if SETTINGS.groq_api_key.strip() else "Extractive mode"
 retriever_label = "BM25" if SETTINGS.low_memory_demo else SETTINGS.embedding_model.split("/")[-1]
 status_pills([
     ("Demo corpus ready" if index_ready else "Index not built", index_ready),
@@ -64,5 +64,5 @@ with right:
         st.switch_page("pages/9_Results.py")
 
 if SETTINGS.low_memory_demo:
-    st.caption("Privacy: the public demo has no upload path. Questions may be sent with sanitized evidence excerpts to Free-tier Gemini; do not enter private information. Raw questions are not retained.")
+    st.caption("Privacy: the public demo has no upload path. Questions may be sent with sanitized evidence excerpts to GroqCloud; do not enter private information. Raw questions are not retained by this application.")
 footer()

@@ -52,7 +52,7 @@ BASES = [
         "detail": "The local container port defaults to 8501.",
         "neutral": "Production telemetry is retained for exactly 30 days.",
         "contradiction": "The service health endpoint is /status-only.",
-        "temporal": "The application cannot operate when Gemini is unavailable.",
+        "temporal": "The application cannot operate when its external generation provider is unavailable.",
     },
     {
         "exact": "No customer data was exposed, and the recovery time was 37 minutes.",

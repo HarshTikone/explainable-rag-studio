@@ -21,7 +21,7 @@ if SETTINGS.low_memory_demo:
 1. **Prepare** — load the committed, sanitized portfolio corpus.
 2. **Chunk** — split each source into bounded, traceable knowledge units.
 3. **Retrieve** — use BM25 to rank chunks by lexical relevance.
-4. **Select** — let Gemini choose numbered evidence sentences, or use the deterministic local fallback.
+4. **Select** — let Groq choose numbered evidence sentences, or use the deterministic local fallback.
 5. **Verify** — require every displayed claim to be exact text from its cited chunk.
 6. **Explain** — expose citations, ranked evidence, latency, and the generation mode.
 """)
