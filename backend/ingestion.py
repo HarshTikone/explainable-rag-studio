@@ -44,7 +44,7 @@ class IngestionOptions:
     parent_tokens: int = 1200
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     context_mode: str = "deterministic"
-    context_model: str = "gemini-2.5-flash"
+    context_model: str = "openai/gpt-oss-20b"
     context_prompt_version: str = "1.0"
     source_version: str | None = None
 
@@ -77,7 +77,7 @@ def index_manifest(items: List[Dict[str, Any]], options: IngestionOptions, activ
         "chunker_version": CHUNKER_VERSION,
         "context_prompt_version": options.context_prompt_version,
         "context_mode": options.context_mode,
-        "context_model": options.context_model if options.context_mode == "gemini" else None,
+        "context_model": options.context_model if options.context_mode != "deterministic" else None,
         "embedding_model": options.embedding_model,
         "child_tokens": options.child_tokens,
         "overlap_tokens": options.overlap_tokens,
@@ -130,13 +130,13 @@ def activate_faiss_atomically(index_dir: str, vectors: np.ndarray, items: List[D
 
 class IngestionService:
     def __init__(self, registry: IngestionRegistry, index_dir: str, upload_dir: str, embedder_factory,
-                 gemini_client=None, organization_id: str = "org_public", actor_user_id: str = "",
+                 generation_client=None, organization_id: str = "org_public", actor_user_id: str = "",
                  security_registry: SecurityRegistry | None = None):
         self.registry = registry
         self.index_dir = index_dir
         self.upload_dir = upload_dir
         self.embedder_factory = embedder_factory
-        self.gemini_client = gemini_client
+        self.generation_client = generation_client
         self.organization_id = organization_id
         self.actor_user_id = actor_user_id
         self.security_registry = security_registry
@@ -163,7 +163,7 @@ class IngestionService:
             "context_mode": options.context_mode,
             "context_prompt_version": options.context_prompt_version,
         }
-        if options.context_mode == "gemini":
+        if options.context_mode != "deterministic":
             expected["context_model"] = options.context_model
         mismatches = [key for key, value in expected.items() if manifest.get(key) != value]
         if mismatches:
@@ -214,7 +214,7 @@ class IngestionService:
         }, created_by=self.actor_user_id)
 
     def _context_enhancer(self, options: IngestionOptions):
-        if options.context_mode != "gemini" or self.gemini_client is None:
+        if options.context_mode == "deterministic" or self.generation_client is None:
             return None
 
         def enhance(prefix: str, text: str) -> str | None:
@@ -228,7 +228,7 @@ class IngestionService:
                 f"Metadata: {prefix}\nChunk: {text}"
             )
             try:
-                response = self.gemini_client.models.generate_content(model=options.context_model, contents=prompt)
+                response = self.generation_client.models.generate_content(model=options.context_model, contents=prompt)
                 value = " ".join((response.text or "").split())
                 value = " ".join(value.split()[:60])
             except Exception:

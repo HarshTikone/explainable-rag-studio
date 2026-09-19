@@ -20,7 +20,7 @@ flowchart TD
     Index --> Retrieve
     Lexical --> Retrieve
     Retrieve --> Rerank["Cross-encoder reranker\n(cross-encoder/ms-marco-MiniLM-L-6-v2, ONNX int8)"]
-    Rerank --> Draft["Structured claim drafting\n(Gemini, or deterministic extractive fallback)"]
+    Rerank --> Draft["Structured claim drafting\n(Groq, or deterministic extractive fallback)"]
     Draft --> Verify["Claim verification\n(deterministic guards + NLI cross-encoder)"]
     Verify --> Filter["Strict filtering:\nonly supported claims displayed"]
     Filter --> Answer["Answer + citations + evidence scores"]
@@ -95,7 +95,7 @@ The Render service is a separate constrained profile, not a smaller claim about 
 
 - `LOW_MEMORY_DEMO=true` forces BM25 and rejects dense/hybrid API requests with `422`.
 - No embedding, reranking, or NLI model is instantiated or downloaded.
-- Gemini `gemini-2.5-flash` may make one 12-second call to select at most two exact cited evidence
+- Groq `openai/gpt-oss-20b` may make one 12-second call to select at most two exact cited evidence
   sentences. Every returned claim must be an exact normalized substring of its cited chunk.
 - Global/session minute and daily allowances, single-call concurrency, and a five-minute circuit
   breaker protect the Free-tier budget. Every failure continues through deterministic extraction.
@@ -107,11 +107,11 @@ verification, fallback behavior, privacy-safe metrics, and limits cannot drift b
 
 ## Observability boundary
 
-OpenTelemetry spans cover parsing, chunking, embedding, retrieval, fusion, reranking, Gemini
+OpenTelemetry spans cover parsing, chunking, embedding, retrieval, fusion, reranking, external
 generation, verification, and complete queries. Export is inert unless
 `OTEL_EXPORTER_OTLP_ENDPOINT` is configured. Spans never contain raw queries, prompts, evidence,
 keys, or user identifiers. Local metrics retain query hashes/lengths, model and fallback state,
-Gemini token usage and configurable cost estimates, plus aggregate context/embedding/verifier
+Provider token usage and configurable cost estimates, plus aggregate context/embedding/verifier
 cache hits and misses.
 
 Security posture, concretely:

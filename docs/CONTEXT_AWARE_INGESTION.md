@@ -22,7 +22,7 @@ OCR is an optional runtime capability outside Docker. If a PDF contains both tex
 - `chunk_id` combines document identity, heading path, section/child ordinal, and normalized child text.
 - `content_fingerprint` combines clean child text and its contextual prefix and keys the embedding cache.
 
-The clean child remains in `text` for display and citation. `retrieval_text` prepends deterministic or cached Gemini context for dense and BM25 retrieval. `generation_text` adds a bounded parent excerpt for grounded answer generation.
+The clean child remains in `text` for display and citation. `retrieval_text` prepends deterministic or cached provider context for dense and BM25 retrieval. `generation_text` adds a bounded parent excerpt for grounded answer generation.
 
 The public benchmark now uses stable `chk_*` identifiers. `data/public_demo_chunk_aliases.json` maps every previous `c000001` identifier in both directions so old reports remain interpretable. Existing reports remain readable but their corpus fingerprints intentionally do not match the context-aware corpus.
 
@@ -54,7 +54,7 @@ The local API has no authentication; do not expose ingestion or deletion endpoin
 
 - Child target: 420 tokens; overlap: 80; parent target: 1,200.
 - Maximum file: 25 MB; maximum API batch: 10 documents.
-- Context mode: deterministic. Gemini enhancement is optional, capped at 60 words, cached by model/prompt/content, and non-blocking on failure.
+- Context mode: deterministic. Groq enhancement is optional, capped at 60 words, cached by model/prompt/content, and non-blocking on failure.
 - Worker lease: 120 seconds; retry limit: 3 attempts.
 - Registry: `outputs/ingestion.db`; managed uploads: `outputs/uploads/`; both require persistent storage in deployment.
 

@@ -62,7 +62,7 @@ class Settings:
     max_documents_per_job: int = int(os.getenv("MAX_DOCUMENTS_PER_JOB", "10"))
     ocr_executable: str = os.getenv("OCR_EXECUTABLE", "")
     context_mode: str = os.getenv("CONTEXT_MODE", "deterministic")
-    context_model: str = os.getenv("CONTEXT_MODEL", "gemini-2.5-flash")
+    context_model: str = os.getenv("CONTEXT_MODEL", "openai/gpt-oss-20b")
     context_prompt_version: str = os.getenv("CONTEXT_PROMPT_VERSION", "1.0")
     ingestion_worker_lease_seconds: int = int(os.getenv("INGESTION_WORKER_LEASE_SECONDS", "120"))
     ingestion_retry_limit: int = int(os.getenv("INGESTION_RETRY_LIMIT", "3"))
@@ -101,19 +101,20 @@ class Settings:
     # embedding
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
-    # Gemini generation
-    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")  # optional: SDK can also auto-pick from env
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    public_gemini_enabled: bool = os.getenv("PUBLIC_GEMINI_ENABLED", "true").lower() == "true"
+    # External generation. The provider selects evidence; local guards decide what is displayed.
+    generation_provider: str = os.getenv("GENERATION_PROVIDER", "groq").strip().lower()
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    generation_model: str = os.getenv("GENERATION_MODEL", "openai/gpt-oss-20b")
+    public_generation_enabled: bool = os.getenv("PUBLIC_GENERATION_ENABLED", "true").lower() == "true"
     demo_question_max_chars: int = int(os.getenv("DEMO_QUESTION_MAX_CHARS", "500"))
     demo_context_max_chars: int = int(os.getenv("DEMO_CONTEXT_MAX_CHARS", "12000"))
     demo_top_k_max: int = int(os.getenv("DEMO_TOP_K_MAX", "6"))
-    demo_gemini_global_rpm: int = int(os.getenv("DEMO_GEMINI_GLOBAL_RPM", "2"))
-    demo_gemini_global_rpd: int = int(os.getenv("DEMO_GEMINI_GLOBAL_RPD", "20"))
-    demo_gemini_session_rpm: int = int(os.getenv("DEMO_GEMINI_SESSION_RPM", "1"))
-    demo_gemini_session_rpd: int = int(os.getenv("DEMO_GEMINI_SESSION_RPD", "5"))
-    demo_gemini_timeout_seconds: float = float(os.getenv("DEMO_GEMINI_TIMEOUT_SECONDS", "12"))
-    demo_gemini_circuit_seconds: int = int(os.getenv("DEMO_GEMINI_CIRCUIT_SECONDS", "300"))
+    demo_provider_global_rpm: int = int(os.getenv("DEMO_PROVIDER_GLOBAL_RPM", "2"))
+    demo_provider_global_rpd: int = int(os.getenv("DEMO_PROVIDER_GLOBAL_RPD", "20"))
+    demo_provider_session_rpm: int = int(os.getenv("DEMO_PROVIDER_SESSION_RPM", "1"))
+    demo_provider_session_rpd: int = int(os.getenv("DEMO_PROVIDER_SESSION_RPD", "5"))
+    demo_provider_timeout_seconds: float = float(os.getenv("DEMO_PROVIDER_TIMEOUT_SECONDS", "12"))
+    demo_provider_circuit_seconds: int = int(os.getenv("DEMO_PROVIDER_CIRCUIT_SECONDS", "300"))
     demo_budget_db_path: str = os.getenv("DEMO_BUDGET_DB_PATH", os.path.join("outputs", "demo_budget.db"))
     genai_input_cost_per_million_usd: float = float(os.getenv("GENAI_INPUT_COST_PER_MILLION_USD", "0"))
     genai_output_cost_per_million_usd: float = float(os.getenv("GENAI_OUTPUT_COST_PER_MILLION_USD", "0"))

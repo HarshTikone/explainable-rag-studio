@@ -188,7 +188,7 @@ def test_extractive_answer_uses_the_question_instead_of_the_first_sentence():
     assert "400 days" in answer
 
 
-class FakeGeminiModels:
+class FakeProviderModels:
     def __init__(self):
         self.calls = 0
 
@@ -203,7 +203,7 @@ class FakeGeminiModels:
 
 
 def test_structured_generation_retries_once_after_malformed_output():
-    models = FakeGeminiModels()
+    models = FakeProviderModels()
     draft = generate_structured_draft("Question?", [hit("c1", "A supported claim.")], SimpleNamespace(models=models), "fake")
     assert models.calls == 2
     assert draft.claims[0].provenance == "generated"

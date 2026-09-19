@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from google import genai
 
 from app._bootstrap import bootstrap
 bootstrap()
@@ -13,6 +12,7 @@ from backend.document_parsers import DocumentParseError
 from backend.embeddings import Embedder
 from backend.ingestion import IngestionOptions, IngestionService, IngestionWorker, parser_capabilities
 from backend.ingestion_registry import IngestionRegistry
+from backend.query_service import create_generation_client
 
 configure_page("Ingest & index", "⬡")
 security = security_context("documents:write")
@@ -36,9 +36,9 @@ def ingestion_runtime(organization_id, actor_user_id):
     root = tenant_dir(security)
     registry = IngestionRegistry(str(root / "lifecycle.db"), organization_id)
     client = None
-    if SETTINGS.gemini_api_key.strip():
+    if SETTINGS.groq_api_key.strip():
         try:
-            client = genai.Client(api_key=SETTINGS.gemini_api_key)
+            client = create_generation_client()
         except Exception:
             pass
     service = IngestionService(registry, str(root), SETTINGS.uploads_dir, Embedder, client,
@@ -48,14 +48,14 @@ def ingestion_runtime(organization_id, actor_user_id):
     return registry, service, worker, client is not None
 
 
-registry, service, worker, gemini_available = ingestion_runtime(security.organization_id, security.user_id)
+registry, service, worker, provider_available = ingestion_runtime(security.organization_id, security.user_id)
 capabilities = parser_capabilities()
 status_pills([
     ("PDF layout", capabilities["pdf"]),
     ("Tables", capabilities["tables"]),
     ("DOCX + HTML", capabilities["docx"] and capabilities["html"]),
     ("OCR", capabilities["ocr"]),
-    ("Gemini context", gemini_available),
+    ("Groq context", provider_available),
 ])
 if not capabilities["ocr"]:
     st.caption("OCR is optional. Text PDFs and other formats remain available; scanned-only PDFs finish with an actionable warning or OCR_REQUIRED error.")
@@ -77,10 +77,10 @@ with c2:
 with c3:
     parent_tokens = st.slider("Parent tokens", child_tokens, 2400, max(SETTINGS.parent_tokens, child_tokens), 100)
 with c4:
-    context_label = st.selectbox("Context mode", ["Deterministic", "Gemini enhanced"], disabled=not gemini_available)
+    context_label = st.selectbox("Context mode", ["Deterministic", "Groq enhanced"], disabled=not provider_available)
 
 source_version = st.text_input("Source version label (optional)", placeholder="For example: 2026.08 or current")
-context_mode = "gemini" if context_label == "Gemini enhanced" and gemini_available else "deterministic"
+context_mode = "provider" if context_label == "Groq enhanced" and provider_available else "deterministic"
 options = IngestionOptions(
     child_tokens=child_tokens,
     overlap_tokens=overlap_tokens,

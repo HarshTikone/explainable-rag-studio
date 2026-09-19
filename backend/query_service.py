@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from typing import Any, Callable, Dict
 
 from .config import SETTINGS
-from .demo_budget import DEMO_GEMINI_BUDGET, DemoGeminiBudget
+from .demo_budget import DEMO_PROVIDER_BUDGET, DemoProviderBudget
 from .generation_usage import usage_from_response
 from .grounding import (
     DeterministicOnlyVerifier,
@@ -16,6 +17,7 @@ from .grounding import (
     generate_public_exact_draft,
 )
 from .observability import set_span_attributes, span
+from .provider_client import GroqClient
 from .qa import answer_with_optional_llm
 from .retriever import retrieve
 from .security_models import RetrievalScope
@@ -27,18 +29,20 @@ class PublicDemoPolicyError(ValueError):
     pass
 
 
-_GEMINI_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="public-gemini")
+LOGGER = logging.getLogger(__name__)
+_PROVIDER_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="public-generation")
 
 
-def create_gemini_client():
+def create_generation_client():
     """Create the configured provider client with the public wall-clock timeout."""
-    if not SETTINGS.gemini_api_key.strip():
+    if not SETTINGS.groq_api_key.strip():
         return None
-    from google import genai
-    options = None
-    if SETTINGS.low_memory_demo:
-        options = {"timeout": int(SETTINGS.demo_gemini_timeout_seconds * 1000)}
-    return genai.Client(api_key=SETTINGS.gemini_api_key, http_options=options)
+    if SETTINGS.generation_provider != "groq":
+        raise ValueError(f"Unsupported generation provider: {SETTINGS.generation_provider}")
+    return GroqClient(
+        api_key=SETTINGS.groq_api_key,
+        timeout_seconds=SETTINGS.demo_provider_timeout_seconds,
+    )
 
 
 def _fallback_metadata(reason: str) -> Dict[str, Any]:
@@ -56,14 +60,14 @@ def _fallback_metadata(reason: str) -> Dict[str, Any]:
     }
 
 
-def _public_draft_with_timeout(question, found, client, budget: DemoGeminiBudget):
+def _public_draft_with_timeout(question, found, client, budget: DemoProviderBudget):
     try:
-        future = _GEMINI_EXECUTOR.submit(
+        future = _PROVIDER_EXECUTOR.submit(
             generate_public_exact_draft,
             question,
             found,
             client,
-            SETTINGS.gemini_model,
+            SETTINGS.generation_model,
             context_max_chars=SETTINGS.demo_context_max_chars,
             max_claims=2,
         )
@@ -71,7 +75,7 @@ def _public_draft_with_timeout(question, found, client, budget: DemoGeminiBudget
         budget.concurrency.release()
         raise
     future.add_done_callback(lambda _future: budget.concurrency.release())
-    return future.result(timeout=SETTINGS.demo_gemini_timeout_seconds)
+    return future.result(timeout=SETTINGS.demo_provider_timeout_seconds)
 
 
 def _provider_fallback_reason(exc: Exception) -> str:
@@ -79,6 +83,16 @@ def _provider_fallback_reason(exc: Exception) -> str:
     message = str(exc).casefold()
     if status == 429 or "429" in message or "quota" in message or "resource exhausted" in message:
         return "provider_quota"
+    if status == 400:
+        return "provider_invalid_request"
+    if status == 401:
+        return "provider_authentication"
+    if status == 403:
+        return "provider_permission"
+    if status == 404:
+        return "provider_model_not_found"
+    if isinstance(status, int) and status >= 500:
+        return "provider_unavailable"
     return "provider_or_validation_error"
 
 
@@ -91,9 +105,9 @@ def run_query(
     scope: RetrievalScope,
     review_registry,
     client_key: str,
-    gemini_client=None,
+    generation_client=None,
     embedder_factory: Callable[[], Any] | None = None,
-    budget: DemoGeminiBudget = DEMO_GEMINI_BUDGET,
+    budget: DemoProviderBudget = DEMO_PROVIDER_BUDGET,
     organization_id: str = "org_public",
     actor_user_id: str = "",
     rerank_candidates: int | None = None,
@@ -139,13 +153,13 @@ def run_query(
         retrieved_at = time.perf_counter()
 
         draft = None
-        generation = _fallback_metadata("gemini_not_configured")
-        should_try_public_gemini = (
+        generation = _fallback_metadata("provider_not_configured")
+        should_try_public_provider = (
             SETTINGS.low_memory_demo
-            and SETTINGS.public_gemini_enabled
-            and gemini_client is not None
+            and SETTINGS.public_generation_enabled
+            and generation_client is not None
         )
-        if should_try_public_gemini:
+        if should_try_public_provider:
             if not budget.concurrency.acquire(blocking=False):
                 generation = _fallback_metadata("concurrency_limit")
             else:
@@ -156,12 +170,12 @@ def run_query(
                 else:
                     try:
                         with span("rag.generate", {
-                            "gen_ai.system": "google",
-                            "gen_ai.request.model": SETTINGS.gemini_model,
+                            "gen_ai.system": SETTINGS.generation_provider,
+                            "gen_ai.request.model": SETTINGS.generation_model,
                             "rag.generation.mode": "public_exact",
                         }) as generation_span:
                             draft, response = _public_draft_with_timeout(
-                                normalized_question, found, gemini_client, budget
+                                normalized_question, found, generation_client, budget
                             )
                             usage = usage_from_response(response)
                             set_span_attributes(generation_span, {
@@ -171,9 +185,9 @@ def run_query(
                             })
                         budget.reset_circuit()
                         generation = {
-                            "mode": "gemini_assisted_exact_evidence",
-                            "provider": "google",
-                            "model": SETTINGS.gemini_model,
+                            "mode": "groq_assisted_exact_evidence",
+                            "provider": SETTINGS.generation_provider,
+                            "model": SETTINGS.generation_model,
                             "fallback_used": False,
                             "fallback_reason": "",
                             "usage": usage,
@@ -185,16 +199,24 @@ def run_query(
                         generation = _fallback_metadata("provider_timeout")
                     except Exception as exc:
                         budget.open_circuit()
-                        generation = _fallback_metadata(_provider_fallback_reason(exc))
+                        reason = _provider_fallback_reason(exc)
+                        LOGGER.warning(
+                            "External generation failed: reason=%s status=%s type=%s",
+                            reason,
+                            getattr(exc, "status_code", None) or getattr(exc, "code", None),
+                            type(exc).__name__,
+                        )
+                        generation = _fallback_metadata(reason)
 
         verifier = DeterministicOnlyVerifier() if SETTINGS.low_memory_demo else None
         semantic_scorer = None if SETTINGS.low_memory_demo or embedder is None else EmbeddingSemanticScorer(embedder)
         output = answer_with_optional_llm(
             question=normalized_question,
             retrieved_items=found,
-            use_gemini=bool(gemini_client) and not SETTINGS.low_memory_demo,
-            gemini_client=gemini_client,
-            gemini_model=SETTINGS.gemini_model,
+            use_provider=bool(generation_client) and not SETTINGS.low_memory_demo,
+            generation_client=generation_client,
+            generation_model=SETTINGS.generation_model,
+            generation_provider=SETTINGS.generation_provider,
             verifier=verifier,
             review_registry=review_registry,
             extractive_max_claims=1 if SETTINGS.low_memory_demo else 3,

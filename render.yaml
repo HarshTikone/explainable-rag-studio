@@ -15,19 +15,23 @@ services:
         value: "true"
       - key: LOW_MEMORY_DEMO
         value: "true"
-      - key: PUBLIC_GEMINI_ENABLED
+      - key: PUBLIC_GENERATION_ENABLED
         value: "true"
-      - key: DEMO_GEMINI_GLOBAL_RPM
+      - key: GENERATION_PROVIDER
+        value: groq
+      - key: GENERATION_MODEL
+        value: openai/gpt-oss-20b
+      - key: DEMO_PROVIDER_GLOBAL_RPM
         value: "2"
-      - key: DEMO_GEMINI_GLOBAL_RPD
+      - key: DEMO_PROVIDER_GLOBAL_RPD
         value: "20"
-      - key: DEMO_GEMINI_SESSION_RPM
+      - key: DEMO_PROVIDER_SESSION_RPM
         value: "1"
-      - key: DEMO_GEMINI_SESSION_RPD
+      - key: DEMO_PROVIDER_SESSION_RPD
         value: "5"
-      - key: DEMO_GEMINI_TIMEOUT_SECONDS
+      - key: DEMO_PROVIDER_TIMEOUT_SECONDS
         value: "12"
-      - key: DEMO_GEMINI_CIRCUIT_SECONDS
+      - key: DEMO_PROVIDER_CIRCUIT_SECONDS
         value: "300"
       - key: DEMO_QUESTION_MAX_CHARS
         value: "500"
@@ -52,9 +56,9 @@ services:
       # 60 requests/minute shared across anonymous visitors by default).
       - key: SECURITY_MODE
         value: demo
-      # Optional. The key must belong to an unbilled Gemini Free-tier project.
-      # Gemini may only select verbatim cited evidence and is protected by the
+      # Optional. The key must belong to a GroqCloud Free-tier project.
+      # Groq may only select verbatim cited evidence and is protected by the
       # app's global/session allowance. Quota or provider failures fall back to
       # deterministic extraction. Never commit a real key here.
-      - key: GEMINI_API_KEY
+      - key: GROQ_API_KEY
         sync: false

@@ -200,7 +200,7 @@ def test_worker_completes_staged_job_and_records_progress(tmp_path):
     assert {event["stage"] for event in job["events"]} >= {"queued", "parsing", "ocr", "chunking", "context", "embedding", "validation", "activation", "complete"}
 
 
-def test_gemini_context_is_cached_and_provider_failure_falls_back(tmp_path):
+def test_provider_context_is_cached_and_provider_failure_falls_back(tmp_path):
     class Models:
         def __init__(self, fail=False):
             self.calls, self.fail = 0, fail
@@ -220,13 +220,13 @@ def test_gemini_context_is_cached_and_provider_failure_falls_back(tmp_path):
     service = IngestionService(registry, str(tmp_path / "index"), str(tmp_path / "uploads"), FakeEmbedder, client)
     path = tmp_path / "context.md"
     path.write_text("# Operations\nRotate AU-7 credentials.", encoding="utf-8")
-    service.process_payload(payload(path, context_mode="gemini"))
+    service.process_payload(payload(path, context_mode="provider"))
     assert client.models.calls == 1
-    assert registry.document_chunks(stable_document_id("context.md"))[0]["context_provenance"] == "gemini_cached"
+    assert registry.document_chunks(stable_document_id("context.md"))[0]["context_provenance"] == "provider_cached"
 
     failing_registry = IngestionRegistry(str(tmp_path / "fallback.db"))
     failing = IngestionService(failing_registry, str(tmp_path / "fallback-index"), str(tmp_path / "fallback-uploads"), FakeEmbedder, Client(True))
-    failing.process_payload(payload(path, context_mode="gemini"))
+    failing.process_payload(payload(path, context_mode="provider"))
     chunk = failing_registry.document_chunks(stable_document_id("context.md"))[0]
     assert chunk["context_provenance"] == "deterministic"
 

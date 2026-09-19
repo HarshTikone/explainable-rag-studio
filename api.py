@@ -29,7 +29,7 @@ from backend.tenant_store import TenantStoreManager
 from backend.vectorstore import FaissStore
 from backend.platform_runtime import PlatformConfigurationError, get_platform_runtime
 from backend.rate_limit import MemoryDemoRateLimiter, RateLimitUnavailable
-from backend.query_service import PublicDemoPolicyError, create_gemini_client, run_query
+from backend.query_service import PublicDemoPolicyError, create_generation_client, run_query
 
 
 platform_runtime = get_platform_runtime()
@@ -50,8 +50,8 @@ store = FaissStore(SETTINGS.index_dir)  # explicit read-only bridge for the lega
 store.load()
 ingestion_registry = IngestionRegistry(SETTINGS.ingestion_db_path, SETTINGS.public_organization_id)  # compatibility
 review_registry = ReviewRegistry(SETTINGS.review_db_path)  # compatibility
-gemini_client = create_gemini_client()
-ingestion_service = IngestionService(ingestion_registry, SETTINGS.index_dir, SETTINGS.uploads_dir, Embedder, gemini_client)
+generation_client = create_generation_client()
+ingestion_service = IngestionService(ingestion_registry, SETTINGS.index_dir, SETTINGS.uploads_dir, Embedder, generation_client)
 ingestion_worker = IngestionWorker(ingestion_service, SETTINGS.ingestion_worker_lease_seconds)
 embedder = None
 _runtimes = {}
@@ -81,7 +81,7 @@ def _runtime(context: SecurityContext):
         root = tenant_stores.organization_dir(context.organization_id)
         registry = IngestionRegistry(str(root / "lifecycle.db"), context.organization_id)
         reviews = ReviewRegistry(str(root / "reviews.db"))
-        service = IngestionService(registry, str(root), SETTINGS.uploads_dir, Embedder, gemini_client,
+        service = IngestionService(registry, str(root), SETTINGS.uploads_dir, Embedder, generation_client,
                                    context.organization_id, context.user_id, security_registry)
         value = (registry, service, IngestionWorker(service, SETTINGS.ingestion_worker_lease_seconds), reviews)
         _runtimes[context.organization_id] = value
@@ -312,7 +312,7 @@ def ask(req: AskRequest, request: Request = None, context: SecurityContext = Dep
             ),
             review_registry=reviews,
             client_key=context.key_id or context.user_id,
-            gemini_client=gemini_client,
+            generation_client=generation_client,
             embedder_factory=get_embedder,
             organization_id=context.organization_id,
             actor_user_id=context.user_id,
@@ -357,7 +357,7 @@ def ask(req: AskRequest, request: Request = None, context: SecurityContext = Dep
 
 
 @app.post("/ingestion/jobs", status_code=202)
-async def create_ingestion_jobs(files: List[UploadFile] = File(...), context_mode: Literal["deterministic", "gemini"] = Form("deterministic"),
+async def create_ingestion_jobs(files: List[UploadFile] = File(...), context_mode: Literal["deterministic", "provider", "groq"] = Form("deterministic"),
                                 source_version: str | None = Form(None), child_tokens: int = Form(SETTINGS.chunk_tokens),
                                 overlap_tokens: int = Form(SETTINGS.chunk_overlap), parent_tokens: int = Form(SETTINGS.parent_tokens),
                                 context: SecurityContext = Depends(context_from_bearer)):

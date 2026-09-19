@@ -1,4 +1,4 @@
-"""Durable, privacy-preserving Gemini allowance for the single-process demo."""
+"""Durable, privacy-preserving provider allowance for the single-process demo."""
 from __future__ import annotations
 
 import hashlib
@@ -17,7 +17,7 @@ class BudgetDecision:
     reason: str = ""
 
 
-class DemoGeminiBudget:
+class DemoProviderBudget:
     def __init__(self, path: str = SETTINGS.demo_budget_db_path):
         self.path = path
         self._lock = Lock()
@@ -54,10 +54,10 @@ class DemoGeminiBudget:
             day = int(now // 86400 * 86400)
             subject = self._subject(client_key)
             checks = (
-                ("global_minute", "global", minute, SETTINGS.demo_gemini_global_rpm),
-                ("global_day", "global", day, SETTINGS.demo_gemini_global_rpd),
-                ("session_minute", subject, minute, SETTINGS.demo_gemini_session_rpm),
-                ("session_day", subject, day, SETTINGS.demo_gemini_session_rpd),
+                ("global_minute", "global", minute, SETTINGS.demo_provider_global_rpm),
+                ("global_day", "global", day, SETTINGS.demo_provider_global_rpd),
+                ("session_minute", subject, minute, SETTINGS.demo_provider_session_rpm),
+                ("session_day", subject, day, SETTINGS.demo_provider_session_rpd),
             )
             with self._connect() as connection:
                 connection.execute("BEGIN IMMEDIATE")
@@ -83,11 +83,11 @@ class DemoGeminiBudget:
     def open_circuit(self, now: float | None = None) -> None:
         now = time.time() if now is None else now
         with self._lock:
-            self._circuit_until = max(self._circuit_until, now + SETTINGS.demo_gemini_circuit_seconds)
+            self._circuit_until = max(self._circuit_until, now + SETTINGS.demo_provider_circuit_seconds)
 
     def reset_circuit(self) -> None:
         with self._lock:
             self._circuit_until = 0.0
 
 
-DEMO_GEMINI_BUDGET = DemoGeminiBudget()
+DEMO_PROVIDER_BUDGET = DemoProviderBudget()

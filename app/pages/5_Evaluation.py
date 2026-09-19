@@ -3,7 +3,6 @@ import time
 
 import pandas as pd
 import streamlit as st
-from google import genai
 
 from app.ui import configure_page, footer, page_header, section, status_pills
 from backend.config import SETTINGS
@@ -13,6 +12,7 @@ from backend.experiments import compare_experiments, create_experiment_config, r
 from backend.grounding_eval import compare_grounding_policies
 from backend.grounding_policy import default_grounding_policy
 from backend.qa import answer_with_optional_llm
+from backend.query_service import create_generation_client
 from backend.retriever import retrieve
 from backend.reranker import RerankerUnavailableError
 from backend.vectorstore import FaissStore
@@ -49,15 +49,15 @@ with c3:
 with c4:
     embed_model = st.text_input("Embedding model", SETTINGS.embedding_model)
 
-use_gemini = False
-gemini_client = None
-if SETTINGS.gemini_api_key.strip():
+use_provider = False
+generation_client = None
+if SETTINGS.groq_api_key.strip():
     try:
-        gemini_client = genai.Client(api_key=SETTINGS.gemini_api_key)
-        use_gemini = True
+        generation_client = create_generation_client()
+        use_provider = True
     except Exception:
         pass
-st.caption(f"Generator: {SETTINGS.gemini_model if use_gemini else 'deterministic extractive fallback'}")
+st.caption(f"Generator: {SETTINGS.generation_model if use_provider else 'deterministic extractive fallback'}")
 
 
 def make_ask_fn(embedder, strategy):
@@ -67,9 +67,10 @@ def make_ask_fn(embedder, strategy):
         output = answer_with_optional_llm(
             question=question,
             retrieved_items=retrieval,
-            use_gemini=use_gemini,
-            gemini_client=gemini_client,
-            gemini_model=SETTINGS.gemini_model,
+            use_provider=use_provider,
+            generation_client=generation_client,
+            generation_model=SETTINGS.generation_model,
+            generation_provider=SETTINGS.generation_provider,
             persist_review=False,
         )
         output["retrieved"] = [hit.to_dict() for hit in retrieval.hits]

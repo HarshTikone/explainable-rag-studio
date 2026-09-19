@@ -11,7 +11,7 @@ behavior shown on camera match what a reviewer will experience.
 3. Open <https://explainable-rag-studio-demo.onrender.com> and allow up to roughly one minute for
    the free instance to wake.
 4. Smoke-test Home, What is RAG, Ask & Explain, and Results.
-5. Run all four sample questions and confirm their Gemini/fallback badges are truthful.
+5. Run all four sample questions and confirm their Groq/fallback badges are truthful.
 
 ## Script
 
@@ -28,7 +28,7 @@ absence of upload or administration controls.
 ### 0:35–1:15 — Explain the pipeline
 
 Open **What is RAG**. Briefly show retrieval, answer selection, citations, and strict abstention.
-Mention that Gemini can select at most two verbatim evidence sentences; invalid output, timeout,
+Mention that Groq can select at most two verbatim evidence sentences; invalid output, timeout,
 quota, or provider failure automatically falls back locally.
 
 ### 1:15–2:40 — Show answers and a hard negative
@@ -41,7 +41,7 @@ Open **Ask & Explain** and run these tested prompts:
    `400 days` evidence wins over the obsolete 90-day document.
 
 For one response, expand the retrieval trace and exact generator context. Point out the visible
-badge: **Gemini-assisted**, **Exact extractive fallback**, or **Quota fallback**. The badge is an
+badge: **Groq-assisted**, **Exact extractive fallback**, or **Quota fallback**. The badge is an
 operating fact, not a quality score.
 
 ### 2:40–3:15 — Show safe abstention

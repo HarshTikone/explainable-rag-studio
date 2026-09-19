@@ -260,13 +260,13 @@ def build_extractive_draft(retrieved_items, max_claims: int = 3, question: str =
     return StructuredDraft(answerable=bool(claims), claims=claims)
 
 
-def generate_structured_draft(question: str, retrieved_items, gemini_client, gemini_model: str) -> StructuredDraft:
+def generate_structured_draft(question: str, retrieved_items, generation_client, generation_model: str) -> StructuredDraft:
     return generate_structured_draft_with_response(
-        question, retrieved_items, gemini_client, gemini_model
+        question, retrieved_items, generation_client, generation_model
     )[0]
 
 
-def generate_structured_draft_with_response(question: str, retrieved_items, gemini_client, gemini_model: str):
+def generate_structured_draft_with_response(question: str, retrieved_items, generation_client, generation_model: str):
     items = [item for _, item in _legacy_items(retrieved_items)]
     if not items:
         return StructuredDraft(answerable=False, claims=[]), None
@@ -285,8 +285,8 @@ def generate_structured_draft_with_response(question: str, retrieved_items, gemi
     last_error: Exception | None = None
     for _ in range(2):
         try:
-            response = gemini_client.models.generate_content(
-                model=gemini_model,
+            response = generation_client.models.generate_content(
+                model=generation_model,
                 contents=prompt,
                 config={"response_mime_type": "application/json", "response_schema": StructuredDraft},
             )
@@ -316,15 +316,15 @@ def generate_structured_draft_with_response(question: str, retrieved_items, gemi
 def generate_public_exact_draft(
     question: str,
     retrieved_items,
-    gemini_client,
-    gemini_model: str,
+    generation_client,
+    generation_model: str,
     *,
     context_max_chars: int = 12_000,
     max_claims: int = 2,
 ):
-    """Use one Gemini call to select verbatim evidence, then validate it locally.
+    """Use one provider call to select verbatim evidence, then validate it locally.
 
-    The free hosted profile cannot afford a local semantic verifier. Gemini is
+    The free hosted profile cannot afford a local semantic verifier. The provider is
     therefore allowed to select evidence, but not to invent or paraphrase the
     displayed answer. The returned claims are marked extractive only after the
     exact-substring and deterministic-conflict checks pass.
@@ -359,8 +359,8 @@ def generate_public_exact_draft(
         "selections.\n\n"
         f"Question:\n{question}\n\nEvidence:\n{context}"
     )
-    response = gemini_client.models.generate_content(
-        model=gemini_model,
+    response = generation_client.models.generate_content(
+        model=generation_model,
         contents=prompt,
         config={
             "response_mime_type": "application/json",
@@ -378,7 +378,7 @@ def generate_public_exact_draft(
         else:
             draft = PublicEvidenceDraft.model_validate_json(getattr(response, "text", ""))
     except Exception as exc:
-        raise PublicDraftValidationError("Gemini returned an invalid evidence-selection response.") from exc
+        raise PublicDraftValidationError("The provider returned an invalid evidence-selection response.") from exc
     if not draft.answerable:
         if draft.selections:
             raise PublicDraftValidationError("An unanswerable public draft cannot contain selections.")
@@ -392,23 +392,23 @@ def generate_public_exact_draft(
     for selection in draft.selections:
         sentences = sentence_map.get(selection.chunk_id)
         if sentences is None:
-            raise PublicDraftValidationError("Gemini selected a chunk that was not retrieved.")
+            raise PublicDraftValidationError("The provider selected a chunk that was not retrieved.")
         if selection.sentence_index >= len(sentences):
-            raise PublicDraftValidationError("Gemini selected a sentence index outside the retrieved chunk.")
+            raise PublicDraftValidationError("The provider selected a sentence index outside the retrieved chunk.")
         key = (selection.chunk_id, selection.sentence_index)
         if key in seen:
             continue
         seen.add(key)
         exact_evidence = sentences[selection.sentence_index]
         if deterministic_guards(exact_evidence, exact_evidence):
-            raise PublicDraftValidationError("Gemini selected evidence that failed deterministic guards.")
+            raise PublicDraftValidationError("The provider selected evidence that failed deterministic guards.")
         validated.append(DraftClaim(
             text=exact_evidence,
             cited_chunk_ids=[selection.chunk_id],
             provenance="extractive",
         ))
     if not validated:
-        raise PublicDraftValidationError("Gemini did not return a unique valid evidence selection.")
+        raise PublicDraftValidationError("The provider did not return a unique valid evidence selection.")
     return StructuredDraft(answerable=True, claims=validated), response
 
 
